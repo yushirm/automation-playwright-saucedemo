@@ -20,7 +20,7 @@ Ported from the original [Selenium C# test suite](https://github.com/yushirm/aut
 
 ## Prerequisites
 
-- **Java 17+** (JDK)
+- **Java 17 JDK** with the fix for CVE-2026-114938, such as [Amazon Corretto 17.0.21.1.2](https://github.com/corretto/corretto-17/releases/tag/17.0.21.1.2) or a later security update on the Java 17 release line.
 - **Maven 3.8+**
 
 ## Getting Started
