@@ -1,6 +1,3 @@
-> **Claude Code One-Shot Creation**
-> This repository was generated in a single Claude Code session as a migration from a Selenium C# test suite to Playwright Java. While functional and following best practices, it has not undergone extensive manual review or production hardening. Please review all code carefully before using in production environments. Use at your own discretion.
-
 # SauceDemo Playwright Test Automation
 
 Automated end-to-end test suite for [saucedemo.com](https://www.saucedemo.com) built with **Playwright for Java** and **JUnit 5**.
