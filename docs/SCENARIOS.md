@@ -275,9 +275,24 @@ In common: a real click on a ready button, no error, no navigation, on the cart,
 
 The difference: in WebKit, a 500 ms pause before the click stopped the failures (0 of 20). Under Selenium in Chrome, the page ignored both clicks and typing for at least 10 s. That looks less like a click arriving too early and more like the page not taking input for a while. The cause is still unknown.
 
-The Playwright suite handles its case with one navigating-click helper (`Navigation.click`): click, wait up to 2 s for the URL to change, click once more if it didn't, and then the page assertion decides. That catches the WebKit pattern. It would not have caught the Selenium runs above, where the retry was dropped as well.
+#### How the Playwright suite treats it: tolerated, and reported
 
-In PR 3's local runs (Playwright 1.65.1, 20 November 2026), WebKit dropped the Back Home click once in 5 full runs, and Chromium none in 3. Each time the retry fired (`Click on ... "Back Home" did not leave .../checkout-complete.html; treating it as dropped and clicking once more`) and the test passed.
+A dropped click is a defect a real user would hit, so the suite tolerates it without hiding it. `Navigation.click` clicks, waits up to 2 s for the URL to change, and if it hasn't, clicks once more; the page assertion then decides. There are no sleeps. Every retry is reported in three places:
+
+- **Allure:** a step "Click dropped on <url>, retried once", and the tag `dropped-click` on the test.
+- **The end of the run:** a log line "Dropped clicks retried (<browser>): N", listing each control and page. It is printed even when N is 0.
+- **GitHub Actions:** the same count and list in each test job's summary.
+
+Observed so far (Playwright 1.65.1, WebKit 27.2, 20 November 2026):
+
+| Browser | Runs | Clicks dropped and retried | Tests that then failed |
+|---|---|---|---|
+| WebKit | 5 full runs | 1 (Back Home on `checkout-complete.html`) | 0 |
+| Chromium | 3 full runs | 0 | 0 |
+
+Before the retry existed, the same Back Home click failed its test in 2 of 15 WebKit runs, and in 0 of 20 with a 500 ms pause before the click.
+
+The retry would not have saved the Selenium runs above, where the second click was dropped too.
 
 ## Decisions on observed behaviour
 

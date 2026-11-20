@@ -156,7 +156,7 @@ class CheckoutStepTwoTests {
 - **Domain types** replace magic strings: `User`, `Product`, `LoginError` and `Customer`. Start a customer from `validCustomer()` and change only what the test is about.
 - **Locators:** `getByRole` where the accessible name is stable and meaningful, `getByTestId` (`data-test`) otherwise.
 - **Assertions:** web-first only, so they retry until the page catches up.
-- **Navigating clicks** go through `Navigation.click`, which retries once if the click didn't change the page. SauceDemo sometimes drops a click that lands just after a page renders; see [docs/SCENARIOS.md](docs/SCENARIOS.md).
+- **Navigating clicks** go through `Navigation.click`, which retries once if the click didn't change the page. SauceDemo sometimes drops a click that lands just after a page renders; see [docs/SCENARIOS.md](docs/SCENARIOS.md). Retries are never silent: each one is an Allure step and tags the test `dropped-click`, and every run ends with "Dropped clicks retried (<browser>): N", also written to the GitHub job summary.
 - **No fixed waits:** `NoSleepsTest` fails the build if any code calls `Thread.sleep`, `TimeUnit.sleep` or `waitForTimeout`.
 
 ## Project structure
