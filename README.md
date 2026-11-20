@@ -82,6 +82,8 @@ mvn spotless:apply
 
 PMD uses the quickstart rules with one change, in `config/pmd/ruleset.xml`: test methods may be named `action_expectedOutcome`.
 
+Checkstyle uses the Google checks with one change, in `config/checkstyle/google_checks.xml`: methods of two lines or fewer need no Javadoc.
+
 ## Report
 
 After a test run, build the Allure report:
@@ -130,7 +132,8 @@ Dependabot keeps the Maven dependencies and the SHA-pinned Actions up to date.
 ## Project structure
 
 ```
-config/pmd/ruleset.xml            PMD rules
+config/checkstyle/google_checks.xml   Checkstyle rules (Google checks, one change)
+config/pmd/ruleset.xml                PMD rules
 src/
 ├── main/java/com/saucedemo/
 │   └── pages/                    Page objects

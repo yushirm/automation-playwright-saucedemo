@@ -20,6 +20,7 @@ The one-shot port in #1 needed these fixes after it landed, before v2 started.
 | PR | What the AI did | Correction | Why |
 |---|---|---|---|
 | 1 | Reported "0 role-based locators" as a metric and listed "locators are not role-based" as a finding, implying `getByRole` should replace v1's `data-test` locators | Reworded the metric and finding. The v2 rule is `getByRole` where the accessible name is stable and meaningful, `getByTestId` otherwise | SauceDemo's `data-test` ids are stable, and Playwright recommends test ids where they exist. A missing role locator is not a gap in itself |
+| 2 | Met Checkstyle's MissingJavadocMethod by writing Javadoc for all 19 flagged methods and constructors, most of which restated the name (`checkout()`: "Clicks Checkout to go to checkout step one") | `minLineCount=2` set in a local copy of Checkstyle 14.4.0's `google_checks.xml` (`config/checkstyle/`), the only change to it. Javadoc that repeated the name deleted. 5 method comments kept, each saying something the name doesn't (what `fillForm` submits, where each Cancel goes, what `login` leads to, which classes use `loginAsStandardUser`) | A comment that restates the method name is noise to read and to maintain. Short methods with clear names need none |
 
 ## Caught by the AI itself
 

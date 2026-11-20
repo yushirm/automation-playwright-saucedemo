@@ -8,17 +8,18 @@ public class LoginPage {
 
   private final Page page;
 
-  /** Wraps the given page. */
   public LoginPage(Page page) {
     this.page = page;
   }
 
-  /** Opens the login page. */
   public void navigate() {
     page.navigate("https://www.saucedemo.com");
   }
 
-  /** Fills in the username and password and clicks Login. */
+  /**
+   * Submits the login form. A valid user lands on the inventory; anything else leaves an error on
+   * this page.
+   */
   public void login(String username, String password) {
     page.getByPlaceholder("Username").fill(username);
     page.getByPlaceholder("Password").fill(password);

@@ -86,7 +86,7 @@ public abstract class BaseTest {
     }
   }
 
-  /** Opens the login page and logs in as {@code standard_user}. */
+  /** Setup for every test class except {@code LoginTests}, which tests the login itself. */
   protected void loginAsStandardUser() {
     LoginPage loginPage = new LoginPage(page);
     loginPage.navigate();

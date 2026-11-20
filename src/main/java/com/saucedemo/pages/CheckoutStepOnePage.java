@@ -8,7 +8,6 @@ public class CheckoutStepOnePage {
 
   private final Page page;
 
-  /** Wraps the given page. */
   public CheckoutStepOnePage(Page page) {
     this.page = page;
   }
@@ -17,7 +16,7 @@ public class CheckoutStepOnePage {
     return page.locator("[data-test='title']");
   }
 
-  /** Fills in the customer details and clicks Continue. */
+  /** Fills in all three fields, then submits the form with Continue. */
   public void fillForm(String firstName, String lastName, String postalCode) {
     page.getByPlaceholder("First Name").fill(firstName);
     page.getByPlaceholder("Last Name").fill(lastName);
@@ -25,7 +24,7 @@ public class CheckoutStepOnePage {
     page.locator("[data-test='continue']").click();
   }
 
-  /** Clicks Cancel to go back to the cart. */
+  /** Goes back to the cart. On step two, Cancel goes to the inventory instead. */
   public void cancel() {
     page.locator("[data-test='cancel']").click();
   }

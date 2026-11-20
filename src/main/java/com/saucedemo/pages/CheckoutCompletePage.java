@@ -8,7 +8,6 @@ public class CheckoutCompletePage {
 
   private final Page page;
 
-  /** Wraps the given page. */
   public CheckoutCompletePage(Page page) {
     this.page = page;
   }
@@ -17,7 +16,6 @@ public class CheckoutCompletePage {
     return page.locator("[data-test='title']");
   }
 
-  /** Clicks Back Home to return to the inventory. */
   public void backToHome() {
     page.locator("[data-test='back-to-products']").click();
   }

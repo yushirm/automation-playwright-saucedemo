@@ -8,7 +8,6 @@ public class CheckoutStepTwoPage {
 
   private final Page page;
 
-  /** Wraps the given page. */
   public CheckoutStepTwoPage(Page page) {
     this.page = page;
   }
@@ -17,12 +16,11 @@ public class CheckoutStepTwoPage {
     return page.locator("[data-test='title']");
   }
 
-  /** Clicks Finish to place the order. */
   public void finish() {
     page.locator("[data-test='finish']").click();
   }
 
-  /** Clicks Cancel to go back to the inventory. */
+  /** Goes back to the inventory, not to step one or the cart. */
   public void cancel() {
     page.locator("[data-test='cancel']").click();
   }
