@@ -213,6 +213,44 @@ Covered by LOGIN-02.
 | X-03 | WebKit | Not covered |
 | X-04 | Accessibility (axe) on each page | Not covered |
 
+## Observed site behaviour: dropped clicks
+
+Both suites have seen SauceDemo ignore a click on a visible, enabled button that should change page. Neither case is fully explained, and they may not have the same cause, so both are recorded as observed.
+
+### Playwright, WebKit: a click just after the page renders
+
+`CheckoutCompleteTests.clickBackToHome_returnsToInventory`, run locally on 20 November 2026 (Playwright 1.65.1, WebKit 27.2):
+
+| Run | WebKit | Chromium |
+|---|---|---|
+| As written | 2 of 15 failed | 0 of 15 failed |
+| With a 500 ms pause before the click (experiment only, never committed) | 0 of 20 failed | not run |
+
+In the failing trace:
+
+- **Before the click:** Finish was clicked at 922 to 931 ms, and Back Home was visible, enabled and stable by 939 ms.
+- **The click:** delivered inside the button's box at 970 to 974 ms.
+- **After it:** no console or page error, and no navigation. The title stayed "Checkout: Complete!" for the 5 s assertion timeout.
+
+A click that arrives within about 40 ms of the confirmation page rendering can be dropped. The trace's DOM snapshots are stored as diffs, so they don't show whether the button was re-rendered in that window.
+
+### Selenium, Chrome: clicks and typing that never reach the page
+
+[Automation-Selenium-SauceDemo run 44740117073](https://github.com/yushirm/Automation-Selenium-SauceDemo/actions/runs/44740117073) (Chrome 157, 20 November 2026) failed 6 of 12. Its diagnostics show:
+
+- **The page:** fully loaded (`readyState` `complete`), with the button itself topmost at its centre, so nothing covered it.
+- **The clicks:** a click recorder, a capture listener on `document`, logged no click at all for the dropped Cancel and Continue Shopping clicks.
+- **The retry:** the suite's click helper waited 10 s and clicked once more, in all four affected tests, and the second click was dropped too.
+- **Typing:** in two other tests, the first-name field "did not hold 'Rick' after typing".
+
+### What the two have in common, and what they don't
+
+In common: a real click on a ready button, no error, no navigation, on the cart, checkout and confirmation pages.
+
+The difference: in WebKit, a short pause before the click was enough to stop the failures. In the Selenium run the page was still ignoring input 10 s later. That looks less like a click arriving too early and more like the page not taking input for a while. Neither suite has caught the cause yet.
+
+Decided in PR 2 review: v2 handles it in PR 3, with one navigating-click helper in the page-object base: click, wait for the URL to change, and click once more if it didn't, with no sleeps. That would catch the WebKit case. It would not have caught the Selenium run above, where the retry was dropped as well.
+
 ## Decisions on observed behaviour
 
 These were not on the handover's list of deliberate defects, and they affect `standard_user`. Decided in the PR 1 review:

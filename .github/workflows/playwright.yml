@@ -10,46 +10,70 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  checks:
+    name: Format and static analysis
     runs-on: ubuntu-24.04
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Set up Java 17
-        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.9.1
+      - name: Set up Java 25
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
           distribution: corretto
-          java-version: '17'
+          java-version: '25'
           check-latest: true
-          cache: 'maven'
+          cache: maven
 
-      - name: Verify Java security update
-        shell: bash
-        run: |
-          minimum_java=17.0.21.1
-          installed_java=$(sed -nE 's/^JAVA_VERSION="([0-9]+(\.[0-9]+)+)"$/\1/p' "$JAVA_HOME/release")
-          if [[ "$installed_java" != 17.* ]] || ! printf '%s\n' "$minimum_java" "$installed_java" | sort -VC; then
-            printf '::error::Java %s or later on the 17 release line is required (found %s).\n' "$minimum_java" "${installed_java:-unknown}"
-            exit 1
-          fi
-          java -version
+      # Compiles with Error Prone (-Werror), then runs Spotless, Checkstyle and PMD.
+      - name: Check formatting and static analysis
+        run: mvn -B -ntp verify -DskipTests
 
-      - name: Build project
-        run: mvn compile test-compile --no-transfer-progress
+  test:
+    name: Tests (${{ matrix.browser }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
 
-      - name: Install Playwright browsers
-        run: mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install --with-deps chromium"
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Java 25
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: corretto
+          java-version: '25'
+          check-latest: true
+          cache: maven
+
+      - name: Install ${{ matrix.browser }}
+        run: mvn -B -ntp exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install --with-deps ${{ matrix.browser }}"
 
       - name: Run tests
-        run: mvn test --no-transfer-progress
+        run: mvn -B -ntp test -Dbrowser=${{ matrix.browser }}
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - name: Build the Allure report
+        if: ${{ !cancelled() }}
+        run: mvn -B -ntp allure:report
+
+      - name: Upload the Allure report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: test-results
+          name: allure-report-${{ matrix.browser }}
+          path: target/site/allure-maven-plugin/index.html
+          retention-days: 14
+
+      - name: Upload failure artifacts
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-results-${{ matrix.browser }}
           path: |
             test-results/
             target/surefire-reports/

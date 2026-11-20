@@ -3,23 +3,25 @@ package com.saucedemo.pages;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 
+/** Checkout step two, {@code /checkout-step-two.html}: the order overview. */
 public class CheckoutStepTwoPage {
 
-    private final Page page;
+  private final Page page;
 
-    public CheckoutStepTwoPage(Page page) {
-        this.page = page;
-    }
+  public CheckoutStepTwoPage(Page page) {
+    this.page = page;
+  }
 
-    public Locator getTitle() {
-        return page.locator("[data-test='title']");
-    }
+  public Locator getTitle() {
+    return page.locator("[data-test='title']");
+  }
 
-    public void finish() {
-        page.locator("[data-test='finish']").click();
-    }
+  public void finish() {
+    page.locator("[data-test='finish']").click();
+  }
 
-    public void cancel() {
-        page.locator("[data-test='cancel']").click();
-    }
+  /** Goes back to the inventory, not to step one or the cart. */
+  public void cancel() {
+    page.locator("[data-test='cancel']").click();
+  }
 }

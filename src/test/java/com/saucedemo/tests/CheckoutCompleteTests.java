@@ -1,5 +1,7 @@
 package com.saucedemo.tests;
 
+import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+
 import com.saucedemo.base.BaseTest;
 import com.saucedemo.pages.CartPage;
 import com.saucedemo.pages.CheckoutCompletePage;
@@ -10,31 +12,29 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
-
 @DisplayName("Checkout Complete Tests")
 class CheckoutCompleteTests extends BaseTest {
 
-    private CheckoutCompletePage checkoutCompletePage;
+  private CheckoutCompletePage checkoutCompletePage;
 
-    @BeforeEach
-    void setUp() {
-        loginAsStandardUser();
-        InventoryPage inventoryPage = new InventoryPage(page);
-        inventoryPage.addBackpackToCart();
-        inventoryPage.openCart();
-        new CartPage(page).checkout();
-        new CheckoutStepOnePage(page).fillForm("Rick", "Grimes", "2293");
-        new CheckoutStepTwoPage(page).finish();
-        checkoutCompletePage = new CheckoutCompletePage(page);
-    }
+  @BeforeEach
+  void setUp() {
+    loginAsStandardUser();
+    InventoryPage inventoryPage = new InventoryPage(page);
+    inventoryPage.addBackpackToCart();
+    inventoryPage.openCart();
+    new CartPage(page).checkout();
+    new CheckoutStepOnePage(page).fillForm("Rick", "Grimes", "2293");
+    new CheckoutStepTwoPage(page).finish();
+    checkoutCompletePage = new CheckoutCompletePage(page);
+  }
 
-    @Test
-    @DisplayName("Clicking back to home returns to inventory")
-    void clickBackToHome_returnsToInventory() {
-        checkoutCompletePage.backToHome();
+  @Test
+  @DisplayName("Clicking back to home returns to inventory")
+  void clickBackToHome_returnsToInventory() {
+    checkoutCompletePage.backToHome();
 
-        InventoryPage inventoryPage = new InventoryPage(page);
-        assertThat(inventoryPage.getTitle()).hasText("Products");
-    }
+    InventoryPage inventoryPage = new InventoryPage(page);
+    assertThat(inventoryPage.getTitle()).hasText("Products");
+  }
 }
