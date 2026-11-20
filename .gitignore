@@ -25,3 +25,6 @@ test-results/
 *.jar
 *.war
 *.ear
+
+# Allure: private Node.js runtime and report history cache
+.allure/

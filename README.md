@@ -1,114 +1,150 @@
 # SauceDemo Playwright Test Automation
 
-Automated end-to-end test suite for [saucedemo.com](https://www.saucedemo.com) built with **Playwright for Java** and **JUnit 5**.
+Automated end-to-end test suite for [saucedemo.com](https://www.saucedemo.com) built with Playwright for Java and JUnit.
 
-Ported from the original [Selenium C# test suite](https://github.com/yushirm/automation-selenium-saucedemo) with improvements including modern locator strategies, automatic waiting, test isolation via browser contexts, and failure artifact capture.
+Ported from the original [Selenium C# test suite](https://github.com/yushirm/automation-selenium-saucedemo), with modern locators, automatic waiting, test isolation through browser contexts, and failure artifacts.
 
-## Tech Stack
+## Tech stack
 
-| Component        | Technology                  |
-|------------------|-----------------------------|
-| Language         | Java 17                     |
-| Test Framework   | JUnit 5 (Jupiter)           |
-| Automation       | Playwright for Java          |
-| Build Tool       | Maven                       |
-| CI/CD            | GitHub Actions               |
-| Browser          | Chromium (headless by default) |
+| Component | Technology |
+|---|---|
+| Language | Java 25 (LTS) |
+| Test framework | JUnit 6 (Jupiter) |
+| Automation | Playwright for Java |
+| Report | Allure 3, one HTML file per run |
+| Formatting and static analysis | Spotless (google-java-format), Checkstyle (Google checks), PMD, Error Prone |
+| Build | Maven |
+| CI | GitHub Actions, on Chromium, Firefox and WebKit |
 
 ## Prerequisites
 
-- **Java 17 JDK** with the fix for CVE-2026-114938, such as [Amazon Corretto 17.0.21.1.2](https://github.com/corretto/corretto-17/releases/tag/17.0.21.1.2) or a later security update on the Java 17 release line.
-- **Maven 3.8+**
+- Java 25 JDK
+- Maven 3.9 or later
 
-## Getting Started
+## Getting started
 
 ```bash
-# Clone the repository
 git clone https://github.com/yushirm/automation-playwright-saucedemo.git
 cd automation-playwright-saucedemo
+```
 
-# Install Playwright browsers (first time only)
-mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install --with-deps chromium"
+Install the browsers (first time only, and after a Playwright upgrade):
 
-# Run all tests
+```bash
+mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install --with-deps chromium firefox webkit"
+```
+
+Run the tests in Chromium:
+
+```bash
 mvn test
 ```
 
-### Run in headed mode (visible browser)
+### Choose a browser
+
+```bash
+mvn test -Dbrowser=firefox
+```
+
+`browser` is one of `chromium` (the default), `firefox` or `webkit`.
+
+### Run with a visible browser
 
 ```bash
 HEADED=true mvn test
 ```
 
-### Run a specific test class
+### Run one class or one test
 
 ```bash
 mvn test -Dtest="LoginTests"
 ```
 
-### Run a specific test method
-
 ```bash
 mvn test -Dtest="LoginTests#loginWithValidCredentials_redirectsToInventory"
 ```
 
-## Test Coverage
+## Formatting and static analysis
 
-| Test Area          | Tests | Description                                          |
-|--------------------|-------|------------------------------------------------------|
-| Login              | 2     | Valid/invalid credential handling                     |
-| Inventory          | 3     | Add/remove items, cart navigation                     |
-| Cart               | 2     | Checkout flow, continue shopping                      |
-| Checkout Step One  | 2     | Form submission, cancel navigation                    |
-| Checkout Step Two  | 2     | Purchase completion, cancel navigation                |
-| Checkout Complete  | 1     | Return to products                                    |
-| **Total**          | **12**|                                                      |
+`mvn verify` is the full check. It compiles with Error Prone (warnings fail the build), runs the tests, then checks formatting with Spotless and runs Checkstyle and PMD. Any finding fails the build.
 
-## Project Structure
+To run the checks without the tests:
+
+```bash
+mvn verify -DskipTests
+```
+
+To fix formatting:
+
+```bash
+mvn spotless:apply
+```
+
+PMD uses the quickstart rules with one change, in `config/pmd/ruleset.xml`: test methods may be named `action_expectedOutcome`.
+
+## Report
+
+After a test run, build the Allure report:
+
+```bash
+mvn allure:report
+```
+
+It is written as a single file, `target/site/allure-maven-plugin/index.html`, that opens directly in a browser. Each test lists its Playwright actions as steps. A failed test also carries a screenshot, the page source, the browser console and the Playwright trace.
+
+The first run downloads a private Node.js runtime and Allure 3 into `.allure/`, which is ignored by Git.
+
+## Failure artifacts
+
+When a test fails, its screenshot and Playwright trace are also saved to `test-results/`. Passing tests save nothing. To open a trace:
+
+```bash
+mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="show-trace test-results/traces/TestName_chromium.zip"
+```
+
+## CI
+
+GitHub Actions runs on pushes and on pull requests to `main`:
+
+- one job for formatting and static analysis
+- one test job per browser: Chromium, Firefox and WebKit
+
+Each test job uploads its Allure report as `allure-report-<browser>`. A failed job also uploads `test-results-<browser>` with the screenshots, traces and Surefire reports. Artifacts are kept for 14 days.
+
+Dependabot keeps the Maven dependencies and the SHA-pinned Actions up to date.
+
+## Test coverage
+
+| Test area | Tests | Description |
+|---|---|---|
+| Login | 2 | Valid and invalid credentials |
+| Inventory | 3 | Add and remove items, cart navigation |
+| Cart | 2 | Checkout, continue shopping |
+| Checkout step one | 2 | Form submission, cancel |
+| Checkout step two | 2 | Finish, cancel |
+| Checkout complete | 1 | Back to products |
+| **Total** | **12** | |
+
+[docs/SCENARIOS.md](docs/SCENARIOS.md) maps every SauceDemo behaviour against these tests, and [docs/AUDIT.md](docs/AUDIT.md) sets out the plan for widening them.
+
+## Project structure
 
 ```
+config/pmd/ruleset.xml            PMD rules
 src/
 ├── main/java/com/saucedemo/
-│   └── pages/                    # Page Object Model classes
+│   └── pages/                    Page objects
 │       ├── LoginPage.java
 │       ├── InventoryPage.java
 │       ├── CartPage.java
 │       ├── CheckoutStepOnePage.java
 │       ├── CheckoutStepTwoPage.java
 │       └── CheckoutCompletePage.java
-└── test/java/com/saucedemo/
-    ├── base/
-    │   └── BaseTest.java         # Shared test lifecycle management
-    └── tests/                    # Test classes
-        ├── LoginTests.java
-        ├── InventoryTests.java
-        ├── CartTests.java
-        ├── CheckoutStepOneTests.java
-        ├── CheckoutStepTwoTests.java
-        └── CheckoutCompleteTests.java
-```
-
-## Key Improvements Over Original Selenium Suite
-
-- **Test Isolation**: Fresh browser context per test (no shared state)
-- **Modern Locators**: Uses `data-test` attributes and Playwright built-in locators instead of fragile CSS class/XPath selectors
-- **Auto-Waiting**: Playwright automatically waits for elements — no explicit waits needed
-- **Web-First Assertions**: Auto-retrying assertions via `PlaywrightAssertions.assertThat()`
-- **Failure Artifacts**: Screenshots and traces captured automatically for debugging
-- **Cross-Platform CI**: Runs on Ubuntu (Linux) instead of Windows-only
-
-## CI/CD
-
-Tests run automatically via GitHub Actions on:
-- Push to `main` or `master`
-- Pull requests targeting `main` or `master`
-
-Test results and failure artifacts are uploaded as workflow artifacts (retained for 14 days).
-
-## Failure Debugging
-
-When tests fail, screenshots and Playwright traces are saved to `test-results/`. To view a trace:
-
-```bash
-mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="show-trace test-results/traces/TestName.zip"
+└── test/
+    ├── java/com/saucedemo/
+    │   ├── base/
+    │   │   └── BaseTest.java     Browser lifecycle and failure artifacts
+    │   └── tests/                Test classes
+    └── resources/
+        └── allure.properties     Allure settings
 ```
