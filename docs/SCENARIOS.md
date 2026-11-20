@@ -20,7 +20,7 @@ The ID column is what later PRs and test names will refer to.
 | Direct URL access when logged out | 6 | 0 | 0 | 6 |
 | Inventory | 9 | 2 | 1 | 6 |
 | Product detail | 6 | 0 | 0 | 6 |
-| Cart | 7 | 3 | 1 | 3 |
+| Cart | 8 | 3 | 1 | 4 |
 | Header and burger menu | 7 | 0 | 0 | 7 |
 | Footer | 2 | 0 | 0 | 2 |
 | Checkout: your information | 5 | 2 | 0 | 3 |
@@ -28,9 +28,9 @@ The ID column is what later PRs and test names will refer to.
 | Checkout: complete | 2 | 1 | 1 | 0 |
 | User-specific behaviour | 15 | 0 | 0 | 15 |
 | Cross-cutting | 4 | 0 | 1 | 3 |
-| **Total** | **82** | **12** | **4** | **66** |
+| **Total** | **83** | **12** | **4** | **67** |
 
-v1's 12 tests map to 12 covered scenarios and touch 4 more in passing. That is 15% fully covered, or 20% counting partial coverage.
+v1's 12 tests map to 12 covered scenarios and touch 4 more in passing. That is 14% fully covered, or 19% counting partial coverage.
 
 ## Login
 
@@ -97,7 +97,8 @@ Each protected page sends a logged-out visitor back to the login page with "Epic
 | CART-04 | Continue Shopping | Back to inventory | Covered |
 | CART-05 | Checkout | `/checkout-step-one.html` | Covered |
 | CART-06 | Cart survives a page reload | Badge unchanged; contents kept in `localStorage` as `cart-contents` | Not covered |
-| CART-07 | Cart survives logout and login | Observed: badge still shows the earlier items. Product decision needed on whether this is intended | Not covered |
+| CART-07 | Cart survives logout and login | Badge still shows the earlier items. Correct behaviour (decided in PR 1 review); asserted as it is | Not covered |
+| CART-08 | Checkout with an empty cart is blocked | Known defect: the site lets an empty cart reach checkout step one. Decided in PR 1 review: a known-issue test asserts that checkout is blocked and is expected to fail, with the reason recorded | Not covered |
 
 ## Header and burger menu
 
@@ -107,8 +108,8 @@ Each protected page sends a logged-out visitor back to the login page with "Epic
 | MENU-02 | All Items | Inventory page | Not covered |
 | MENU-03 | About | Links to `https://saucelabs.com/` | Not covered |
 | MENU-04 | Logout | Back to `/`; protected pages refuse access afterwards | Not covered |
-| MENU-05 | Reset App State | Badge cleared. Observed quirk: product buttons still say Remove until the page is reloaded | Not covered |
-| MENU-06 | Dynamic Catalog | Opens a submenu of Lazy Load, Spinner and Slider demos. New since the handover was written; scope to be agreed | Not covered |
+| MENU-05 | Reset App State | Badge cleared, and product buttons return to Add to cart. Known defect: the buttons still say Remove until the page is reloaded. Decided in PR 1 review: a known-issue test asserts the correct behaviour and is expected to fail, with the reason recorded | Not covered |
+| MENU-06 | Dynamic Catalog | Opens a submenu of Lazy Load, Spinner and Slider demos. Out of scope for v2 | Not covered: added to the site Nov 2026, not yet stable |
 | MENU-07 | Page title "Products" and the app logo | Present on every logged-in page | Not covered (title asserted per page, header itself never) |
 
 ## Footer
@@ -212,11 +213,15 @@ Covered by LOGIN-02.
 | X-03 | WebKit | Not covered |
 | X-04 | Accessibility (axe) on each page | Not covered |
 
-## Observed behaviour that needs a decision
+## Decisions on observed behaviour
 
-These are not on the handover's list of deliberate defects, and they affect `standard_user`. Each needs a call on whether v2 asserts the current behaviour or records it as a defect.
+These were not on the handover's list of deliberate defects, and they affect `standard_user`. Decided in the PR 1 review:
 
-1. **Checkout with an empty cart is allowed** (CART-05 with nothing added reaches step one).
-2. **Cart survives logout and login** (CART-07).
-3. **Reset App State leaves product buttons saying Remove until reload** (MENU-05).
-4. **Dynamic Catalog** (MENU-06) is new. In scope for v2, or out?
+| Behaviour | Scenario | Decision |
+|---|---|---|
+| Checkout with an empty cart is allowed | CART-08 | Defect. Known-issue test that asserts checkout is blocked, expected to fail, with the reason |
+| Cart survives logout and login | CART-07 | Correct behaviour. Asserted as it is |
+| Reset App State leaves product buttons saying Remove until reload | MENU-05 | Defect. Known-issue test that asserts the buttons reset, expected to fail, with the reason |
+| Dynamic Catalog | MENU-06 | Out of scope for v2: added to the site Nov 2026, not yet stable |
+
+A known-issue test is never disabled or skipped. It runs every time and is reported as an expected failure. If the site is fixed, the test starts passing and the build says so, which is the signal to turn it into an ordinary test.

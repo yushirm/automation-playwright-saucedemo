@@ -9,7 +9,7 @@ Everything below was measured on 20 November 2026 against `main` at `dcf4c80` ("
 | Metric | v1 |
 |---|---|
 | Tests | 12 |
-| Scenarios covered (of 82 in [SCENARIOS.md](SCENARIOS.md)) | 12 covered, 4 partial (15%, or 20% with partial) |
+| Scenarios covered (of 83 in [SCENARIOS.md](SCENARIOS.md)) | 12 covered, 4 partial (14%, or 19% with partial) |
 | User types exercised | 1 of 6 (`standard_user`) |
 | Products exercised | 1 of 6 (Sauce Labs Backpack) |
 | Browsers in CI | 1 (Chromium) |
@@ -17,7 +17,7 @@ Everything below was measured on 20 November 2026 against `main` at `dcf4c80` ("
 | Run time, full suite, warm Maven cache | 14.2 to 15.4 s (Maven total); 0.67 to 1.13 s per test |
 | Hard waits (`Thread.sleep`, `waitForTimeout`) | 0 |
 | Assertion calls | 16, all web-first (`PlaywrightAssertions.assertThat`) |
-| Role-based locators | 0 (18 `data-test` CSS selectors, 5 `getByPlaceholder`) |
+| Locators | 23: 18 `data-test` as hand-written CSS, 5 `getByPlaceholder` |
 | Test classes repeating the same setup chain | 5 of 6 |
 | Checkstyle (Google checks) | 297, of which 262 are indentation |
 | PMD (quickstart) | 13, of which 12 are test-method naming |
@@ -51,7 +51,7 @@ v2 builds on all of this.
 
 ### 1. Coverage is one happy path for one user
 
-Twelve tests, all as `standard_user`, all with the Backpack. Five of the six user types SauceDemo exists to provide are never logged in. Nor are sorting, product detail, the burger menu, the footer, checkout validation, totals and tax, or logged-out access. 66 of 82 scenarios are not touched.
+Twelve tests, all as `standard_user`, all with the Backpack. Five of the six user types SauceDemo exists to provide are never logged in. Nor are sorting, product detail, the burger menu, the footer, checkout validation, totals and tax, or logged-out access. 67 of 83 scenarios are not touched.
 
 The deliberate defects are the most valuable part of SauceDemo as a test target, and none of them are exercised. A suite run as `problem_user` would currently have no way to report that three products cannot be added to the cart.
 
@@ -115,22 +115,24 @@ Error Prone at default severity finds nothing. With every optional check switche
 
 There is no human-readable report with steps, so a failure in CI means downloading an artifact and opening a trace. The `@DisplayName`s are good and would carry straight into a step-based report.
 
-### 11. Locators are not role-based
+### 11. Locators: the right attributes, written by hand
 
-All 23 locators are `data-test` or placeholder. They are stable, but they don't check that a button is exposed as a button or that a field has an accessible name. Moving to `getByRole` where the page supports it, and `getByTestId` otherwise, gives a small free accessibility check with every interaction.
+v1 picked the right thing to locate by. SauceDemo's `data-test` ids are stable, and Playwright recommends test ids where a site provides them. The 18 `data-test` locators are written as raw CSS (`page.locator("[data-test='checkout']")`) rather than through `getByTestId` with the test-id attribute set to `data-test` once. The 5 placeholder locators would break if the placeholder text changed, though the field's purpose would not.
+
+The v2 rule: `getByRole` where the accessible name is stable and meaningful (a button's visible label, a field's label), and `getByTestId` otherwise. Neither is preferred for its own sake. Where both work, the role locator also checks that the element is exposed as what it looks like.
 
 ## Plan for PRs 2 to 7
 
 The handover order holds up. The audit suggests three adjustments, marked **(changed)**.
 
 **PR 2: tooling and standards.**
-Java 25 LTS. Playwright 1.65.1, JUnit 6.1.3 and the current Maven plugins. Spotless (google-java-format) and Checkstyle, PMD and Error Prone failing the build, with the PMD naming rule tuned rather than the test names changed. Dependabot for Maven as well as Actions. A CI matrix of Chromium, Firefox and WebKit. Traces and screenshots kept **on failure only** (finding 4), without the swallowed exception. A readable step-based report. **(changed)** PR 2 supersedes Dependabot PRs #4 to #6, which touch the same workflow file; I suggest closing them once it merges, or merging them first, so the two don't conflict.
+Java 25 LTS, with the patched-17 instructions dropped from the README. Playwright 1.65.1, JUnit 6.1.3 and the current Maven plugins. Spotless (google-java-format) and Checkstyle, PMD and Error Prone failing the build. PMD's naming rule is tuned for test classes only, with a comment saying why, so the `method_scenario` test names stay. Dependabot for Maven as well as Actions. A CI matrix of Chromium, Firefox and WebKit. Traces and screenshots kept **on failure only** (finding 4), without the swallowed exception. An Allure report with steps, published as a CI artifact. **(changed)** PR 2 supersedes Dependabot PRs #4 to #6, which touch the same workflow file; Yushir will close them once it lands.
 
 **PR 3: object model.**
-Page objects per page. Components for Header, BurgerMenu, CartBadge and ProductCard. `User` and `Product` enums and a `Customer` builder, so there are no magic strings. JUnit 5 extensions in place of `BaseTest`. Role and test-id locators only, web-first assertions, and a check that fails the build on any sleep. Tests that read like specs. The existing 12 tests are ported first and must stay green, so the refactor is proven before coverage grows.
+Page objects per page. Components for Header, BurgerMenu, CartBadge and ProductCard. `User` and `Product` enums and a `Customer` builder, so there are no magic strings. JUnit 5 extensions in place of `BaseTest`. Locators follow the rule in finding 11, web-first assertions, and a check that fails the build on any sleep. Tests that read like specs. The existing 12 tests are ported first and must stay green, so the refactor is proven before coverage grows.
 
 **PR 4: coverage.**
-Fill the scenario matrix, parameterised across user types where behaviour is shared. Deliberate defects become explicit expected failures with the reason recorded. **(changed)** This PR will also check the numbers (finding 2: totals, 8% tax, and inventory price against cart price) and resolve the four open behaviour questions at the end of SCENARIOS.md.
+Fill the scenario matrix, parameterised across user types where behaviour is shared. Deliberate defects become explicit expected failures with the reason recorded. **(changed)** This PR will also check the numbers (finding 2: totals, 8% tax, and inventory price against cart price) and apply the behaviour decisions at the end of SCENARIOS.md: known-issue tests for empty-cart checkout and Reset App State, and the cart surviving logout asserted as it is.
 
 **PR 5: performance_glitch_user.**
 Timing assertions on login and sorting against an explicit budget, with the measured baseline and the reasoning for the threshold written down. The data so far: about 70 ms against about 5,100 ms, with add-to-cart and product detail unaffected. That is a wide, stable gap, so a budget can be generous and still fail cleanly.
@@ -141,9 +143,15 @@ Screenshot comparison against checked-in baselines, and axe checks on each page.
 **PR 7: the story.**
 README rewrite and IMPROVEMENTS.md, with the before and after scorecard built from the same rows as the headline table above.
 
-## Questions for review
+## Decisions from review
 
-1. **The four behaviours** at the end of [SCENARIOS.md](SCENARIOS.md): empty-cart checkout, cart surviving logout, Reset App State leaving Remove buttons, and whether Dynamic Catalog is in scope. Assert as-is, or record as defects?
-2. **Java 25 or stay on 17?** The handover says latest LTS. The README currently asks for a specific patched 17 build, so moving to 25 also changes the prerequisites.
-3. **Report tool.** Allure is the obvious choice for steps. It brings a CLI or a Pages deploy to view the report. A lighter option is the Surefire HTML report plus Playwright traces. I lean towards Allure, published as a CI artifact.
-4. **Test naming.** Keep `method_scenario` names and tune PMD, or switch to camelCase with `@DisplayName` carrying the readable form?
+Recorded from Yushir's review of this PR.
+
+1. **Empty-cart checkout** (CART-08): defect. Known-issue test asserting checkout is blocked, expected to fail, with the reason.
+2. **Cart survives logout and login** (CART-07): correct behaviour. Asserted as it is.
+3. **Reset App State leaving Remove buttons** (MENU-05): defect. Known-issue test, as for 1.
+4. **Dynamic Catalog** (MENU-06): out of scope for v2. Listed in SCENARIOS.md as not covered: added to the site Nov 2026, not yet stable.
+5. **Java 25 LTS.** The patched-17 instructions come out of the README.
+6. **Allure**, published as a CI artifact.
+7. **Test names stay `method_scenario`.** PMD's naming rule is tuned for test classes only, with a comment saying why.
+8. **Dependabot #4 to #6**: Yushir closes them once PR 2 lands.
