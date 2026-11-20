@@ -1,48 +1,36 @@
 package com.saucedemo.tests;
 
-import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import static com.saucedemo.domain.Customer.validCustomer;
+import static com.saucedemo.domain.Product.BACKPACK;
+import static com.saucedemo.domain.User.STANDARD;
 
-import com.saucedemo.base.BaseTest;
-import com.saucedemo.pages.CartPage;
-import com.saucedemo.pages.CheckoutCompletePage;
-import com.saucedemo.pages.CheckoutStepOnePage;
-import com.saucedemo.pages.CheckoutStepTwoPage;
-import com.saucedemo.pages.InventoryPage;
+import com.saucedemo.SauceDemo;
+import com.saucedemo.pages.CheckoutOverviewPage;
+import com.saucedemo.support.SauceDemoTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+@SauceDemoTest
 @DisplayName("Checkout Step Two Tests")
-class CheckoutStepTwoTests extends BaseTest {
+class CheckoutStepTwoTests {
 
-  private CheckoutStepTwoPage checkoutStepTwoPage;
+  private CheckoutOverviewPage overview;
 
   @BeforeEach
-  void setUp() {
-    loginAsStandardUser();
-    InventoryPage inventoryPage = new InventoryPage(page);
-    inventoryPage.addBackpackToCart();
-    inventoryPage.openCart();
-    new CartPage(page).checkout();
-    new CheckoutStepOnePage(page).fillForm("Rick", "Grimes", "2293");
-    checkoutStepTwoPage = new CheckoutStepTwoPage(page);
+  void reachOverview(SauceDemo app) {
+    overview = app.shopper(STANDARD).adds(BACKPACK).checksOutAs(validCustomer());
   }
 
   @Test
   @DisplayName("Clicking finish completes the purchase")
   void clickFinish_completesPurchase() {
-    checkoutStepTwoPage.finish();
-
-    CheckoutCompletePage completePage = new CheckoutCompletePage(page);
-    assertThat(completePage.getTitle()).hasText("Checkout: Complete!");
+    overview.finish().assertIsOpen();
   }
 
   @Test
   @DisplayName("Clicking cancel returns to inventory")
   void clickCancel_returnsToInventory() {
-    checkoutStepTwoPage.cancel();
-
-    InventoryPage inventoryPage = new InventoryPage(page);
-    assertThat(inventoryPage.getTitle()).hasText("Products");
+    overview.cancel().assertIsOpen();
   }
 }

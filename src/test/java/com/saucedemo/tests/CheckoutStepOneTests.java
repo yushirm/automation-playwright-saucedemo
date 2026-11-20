@@ -1,46 +1,36 @@
 package com.saucedemo.tests;
 
-import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import static com.saucedemo.domain.Customer.validCustomer;
+import static com.saucedemo.domain.Product.BACKPACK;
+import static com.saucedemo.domain.User.STANDARD;
 
-import com.saucedemo.base.BaseTest;
-import com.saucedemo.pages.CartPage;
-import com.saucedemo.pages.CheckoutStepOnePage;
-import com.saucedemo.pages.CheckoutStepTwoPage;
-import com.saucedemo.pages.InventoryPage;
+import com.saucedemo.SauceDemo;
+import com.saucedemo.pages.CheckoutInformationPage;
+import com.saucedemo.support.SauceDemoTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+@SauceDemoTest
 @DisplayName("Checkout Step One Tests")
-class CheckoutStepOneTests extends BaseTest {
+class CheckoutStepOneTests {
 
-  private CheckoutStepOnePage checkoutStepOnePage;
+  private CheckoutInformationPage information;
 
   @BeforeEach
-  void setUp() {
-    loginAsStandardUser();
-    InventoryPage inventoryPage = new InventoryPage(page);
-    inventoryPage.addBackpackToCart();
-    inventoryPage.openCart();
-    new CartPage(page).checkout();
-    checkoutStepOnePage = new CheckoutStepOnePage(page);
+  void startCheckout(SauceDemo app) {
+    information = app.shopper(STANDARD).adds(BACKPACK).opensCart().checkout();
   }
 
   @Test
   @DisplayName("Submitting valid form data proceeds to checkout step two")
   void submitValidForm_proceedsToStepTwo() {
-    checkoutStepOnePage.fillForm("Rick", "Grimes", "2293");
-
-    CheckoutStepTwoPage checkoutStepTwoPage = new CheckoutStepTwoPage(page);
-    assertThat(checkoutStepTwoPage.getTitle()).hasText("Checkout: Overview");
+    information.fillIn(validCustomer()).continueToOverview().assertIsOpen();
   }
 
   @Test
   @DisplayName("Clicking cancel returns to cart")
   void clickCancel_returnsToCart() {
-    checkoutStepOnePage.cancel();
-
-    CartPage cartPage = new CartPage(page);
-    assertThat(cartPage.getTitle()).hasText("Your Cart");
+    information.cancel().assertIsOpen();
   }
 }

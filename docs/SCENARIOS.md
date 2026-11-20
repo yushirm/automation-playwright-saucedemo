@@ -243,13 +243,41 @@ A click that arrives within about 40 ms of the confirmation page rendering can b
 - **The retry:** the suite's click helper waited 10 s and clicked once more, in all four affected tests, and the second click was dropped too.
 - **Typing:** in two other tests, the first-name field "did not hold 'Rick' after typing".
 
+A second attempt, retrying after 2 s instead of 10 s ([run 44749493891](https://github.com/yushirm/Automation-Selenium-SauceDemo/actions/runs/44749493891)), was dropped as well: the recorder logged neither click. Three of that run's four failures were typing that never landed. The change was reverted.
+
+#### Is it the browser or driver version?
+
+Investigated on 20 November 2026 from the CI logs and the runner images' published software lists. Every run used Selenium.WebDriver 4.53.0, and each runner image ships a matching Chrome and ChromeDriver.
+
+| Run | Time (UTC) | Runner image | Chrome and ChromeDriver | Result |
+|---|---|---|---|---|
+| 33 (`main`) | 19 Nov 06:52 | ubuntu-26.04 20261111.196 | 157.0.8103.50 | green |
+| 34, attempt 1 | 20 Nov 10:20 | 20261111.196 | 157.0.8103.50 | red, 4 of 12 |
+| 34, attempt 2 | 12:12 | 20261116.202 | 157.0.8103.78 | red, 6 of 12 |
+| 35, attempt 2 | 12:38 | 20261111.196 | 157.0.8103.50 | red, 2 of 12 |
+| 36, attempts 1 and 2 | 12:42, 12:45 | 20261111.196 | 157.0.8103.50 | green, green |
+| 37 (`main`) | 12:48 | 20261111.196 | 157.0.8103.50 | green |
+| 38 | 12:48 | 20261116.88 (AWS) | not published | green |
+| 39 (`main`) | 12:57 | 20261111.196 | 157.0.8103.50 | red, 7 of 12 |
+| 40 | 12:57 | 20261116.202 | 157.0.8103.78 | red, 6 of 12 |
+| 41 | 14:01 | 20261116.202 | 157.0.8103.78 | red, 4 of 12 |
+
+The same image, with Chrome and ChromeDriver 157.0.8103.50, was green on 19 November and both green and red within 20 minutes on 20 November. So the Chrome rollout from .50 to .78 doesn't explain it. Every .78 run so far was red, so .78 may make it worse, but .50 fails too.
+
+Two more things the logs show:
+
+- **Which tests fail.** The failures are on the cart and checkout pages. Login and inventory-only tests have not failed in any run.
+- **The Playwright suite at the same times.** It passed on Chromium at 12:54, 13:16 and 13:50. It uses its own bundled Chromium (build 1255, Chrome 159), not the runner's Chrome, so this shows the site taking input from a different browser at those moments. It doesn't separate the site from the browser.
+
 ### What the two have in common, and what they don't
 
 In common: a real click on a ready button, no error, no navigation, on the cart, checkout and confirmation pages.
 
-The difference: in WebKit, a short pause before the click was enough to stop the failures. In the Selenium run the page was still ignoring input 10 s later. That looks less like a click arriving too early and more like the page not taking input for a while. Neither suite has caught the cause yet.
+The difference: in WebKit, a 500 ms pause before the click stopped the failures (0 of 20). Under Selenium in Chrome, the page ignored both clicks and typing for at least 10 s. That looks less like a click arriving too early and more like the page not taking input for a while. The cause is still unknown.
 
-Decided in PR 2 review: v2 handles it in PR 3, with one navigating-click helper in the page-object base: click, wait for the URL to change, and click once more if it didn't, with no sleeps. That would catch the WebKit case. It would not have caught the Selenium run above, where the retry was dropped as well.
+The Playwright suite handles its case with one navigating-click helper (`Navigation.click`): click, wait up to 2 s for the URL to change, click once more if it didn't, and then the page assertion decides. That catches the WebKit pattern. It would not have caught the Selenium runs above, where the retry was dropped as well.
+
+In PR 3's local runs (Playwright 1.65.1, 20 November 2026), WebKit dropped the Back Home click once in 5 full runs, and Chromium none in 3. Each time the retry fired (`Click on ... "Back Home" did not leave .../checkout-complete.html; treating it as dropped and clicking once more`) and the test passed.
 
 ## Decisions on observed behaviour
 

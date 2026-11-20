@@ -129,25 +129,54 @@ Dependabot keeps the Maven dependencies and the SHA-pinned Actions up to date.
 
 [docs/SCENARIOS.md](docs/SCENARIOS.md) maps every SauceDemo behaviour against these tests, and [docs/AUDIT.md](docs/AUDIT.md) sets out the plan for widening them.
 
+## How the tests are written
+
+A test asks for a `SauceDemo` and reads like the journey it checks:
+
+```java
+@SauceDemoTest
+class CheckoutStepTwoTests {
+
+  private CheckoutOverviewPage overview;
+
+  @BeforeEach
+  void reachOverview(SauceDemo app) {
+    overview = app.shopper(STANDARD).adds(BACKPACK).checksOutAs(validCustomer());
+  }
+
+  @Test
+  void clickFinish_completesPurchase() {
+    overview.finish().assertIsOpen();
+  }
+}
+```
+
+- **`@SauceDemoTest`** registers the browser fixture: a fresh context and page per test, and a trace and screenshot kept only on failure.
+- **Page objects** live in `pages`, and the parts shared between pages in `components`. A navigating action returns the page it leads to.
+- **Domain types** replace magic strings: `User`, `Product`, `LoginError` and `Customer`. Start a customer from `validCustomer()` and change only what the test is about.
+- **Locators:** `getByRole` where the accessible name is stable and meaningful, `getByTestId` (`data-test`) otherwise.
+- **Assertions:** web-first only, so they retry until the page catches up.
+- **Navigating clicks** go through `Navigation.click`, which retries once if the click didn't change the page. SauceDemo sometimes drops a click that lands just after a page renders; see [docs/SCENARIOS.md](docs/SCENARIOS.md).
+- **No fixed waits:** `NoSleepsTest` fails the build if any code calls `Thread.sleep`, `TimeUnit.sleep` or `waitForTimeout`.
+
 ## Project structure
 
 ```
-config/checkstyle/google_checks.xml   Checkstyle rules (Google checks, one change)
-config/pmd/ruleset.xml                PMD rules
+config/
+├── checkstyle/google_checks.xml   Checkstyle rules (Google checks, one change)
+└── pmd/ruleset.xml                PMD rules
 src/
 ├── main/java/com/saucedemo/
-│   └── pages/                    Page objects
-│       ├── LoginPage.java
-│       ├── InventoryPage.java
-│       ├── CartPage.java
-│       ├── CheckoutStepOnePage.java
-│       ├── CheckoutStepTwoPage.java
-│       └── CheckoutCompletePage.java
+│   ├── SauceDemo.java             Entry point: base URL, login page, shopper
+│   ├── domain/                    User, Product, LoginError, Customer
+│   ├── pages/                     Page objects, BasePage, AppPage, Navigation
+│   ├── components/                Header, BurgerMenu, CartBadge, ProductCard
+│   └── flows/                     Shopper
 └── test/
     ├── java/com/saucedemo/
-    │   ├── base/
-    │   │   └── BaseTest.java     Browser lifecycle and failure artifacts
-    │   └── tests/                Test classes
+    │   ├── support/               PlaywrightExtension and @SauceDemoTest
+    │   ├── architecture/          NoSleepsTest
+    │   └── tests/                 Test classes
     └── resources/
-        └── allure.properties     Allure settings
+        └── allure.properties      Allure settings
 ```

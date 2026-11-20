@@ -1,50 +1,48 @@
 package com.saucedemo.tests;
 
-import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import static com.saucedemo.domain.Product.BACKPACK;
+import static com.saucedemo.domain.User.STANDARD;
 
-import com.saucedemo.base.BaseTest;
-import com.saucedemo.pages.CartPage;
+import com.saucedemo.SauceDemo;
 import com.saucedemo.pages.InventoryPage;
+import com.saucedemo.support.SauceDemoTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+@SauceDemoTest
 @DisplayName("Inventory Page Tests")
-class InventoryTests extends BaseTest {
+class InventoryTests {
 
-  private InventoryPage inventoryPage;
+  private InventoryPage inventory;
 
   @BeforeEach
-  void setUp() {
-    loginAsStandardUser();
-    inventoryPage = new InventoryPage(page);
+  void logIn(SauceDemo app) {
+    inventory = app.shopper(STANDARD).inventory();
   }
 
   @Test
   @DisplayName("Adding item to cart increments cart badge to one")
   void addItemToCart_incrementsCartBadge() {
-    inventoryPage.addBackpackToCart();
+    inventory.product(BACKPACK).addToCart();
 
-    assertThat(inventoryPage.getCartBadge()).hasText("1");
+    inventory.header().cartBadge().assertShows(1);
   }
 
   @Test
   @DisplayName("Removing item from cart hides cart badge")
   void removeItemFromCart_hidesCartBadge() {
-    inventoryPage.addBackpackToCart();
-    assertThat(inventoryPage.getCartBadge()).hasText("1");
+    inventory.product(BACKPACK).addToCart();
+    inventory.header().cartBadge().assertShows(1);
 
-    inventoryPage.removeBackpackFromCart();
-    assertThat(inventoryPage.getCartBadge()).not().isVisible();
+    inventory.product(BACKPACK).remove();
+
+    inventory.header().cartBadge().assertHidden();
   }
 
   @Test
   @DisplayName("Clicking shopping cart navigates to cart page")
   void clickShoppingCart_navigatesToCartPage() {
-    inventoryPage.openCart();
-
-    CartPage cartPage = new CartPage(page);
-    assertThat(cartPage.getTitle()).hasText("Your Cart");
-    assertThat(page).hasURL(BASE_URL + "/cart.html");
+    inventory.header().openCart().assertIsOpen();
   }
 }
