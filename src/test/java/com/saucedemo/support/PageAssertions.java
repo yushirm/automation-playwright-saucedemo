@@ -16,8 +16,8 @@ public final class PageAssertions {
   /** Asserts the browser is on the expected page: its URL, and for logged-in pages its title. */
   public static void assertOpen(Page page, BasePage expected) {
     assertThat(page).hasURL(expected.url());
-    if (expected instanceof AppPage appPage) {
-      assertThat(appPage.title()).hasText(appPage.expectedTitle());
+    if (expected instanceof AppPage appPage && appPage.expectedTitle().isPresent()) {
+      assertThat(appPage.title()).hasText(appPage.expectedTitle().get());
     }
   }
 }

@@ -13,7 +13,7 @@ public final class LoginPage extends BasePage {
   }
 
   @Override
-  protected String path() {
+  public String path() {
     return "/";
   }
 
@@ -36,6 +36,20 @@ public final class LoginPage extends BasePage {
   /** Submits the form with any username and password, and stays here to check the outcome. */
   public LoginPage attemptLogin(String username, String password) {
     submit(username, password);
+    return this;
+  }
+
+  public Locator usernameField() {
+    return textbox("Username");
+  }
+
+  public Locator passwordField() {
+    return textbox("Password");
+  }
+
+  /** Closes the error with its dismiss button. */
+  public LoginPage dismissError() {
+    button("Dismiss error").click();
     return this;
   }
 

@@ -8,11 +8,31 @@ import com.saucedemo.pages.LoginPage;
 import com.saucedemo.pages.Navigation;
 
 /**
- * The side menu behind the button at the top left. All Items, Logout and Reset App State are
- * anchors without a real link, so they have no link role and are found by test id. About is a real
- * link.
+ * The side menu behind the button at the top left. While it is closed the site hides it from
+ * assistive technology, so a role locator finds nothing until it is open.
  */
 public final class BurgerMenu {
+
+  /** The entries, with the role each is exposed as. About is a real link; the rest are buttons. */
+  public enum Item {
+    ALL_ITEMS("All Items", AriaRole.BUTTON),
+    DYNAMIC_CATALOG("Dynamic Catalog", AriaRole.BUTTON),
+    ABOUT("About", AriaRole.LINK),
+    LOGOUT("Logout", AriaRole.BUTTON),
+    RESET_APP_STATE("Reset App State", AriaRole.BUTTON);
+
+    private final String label;
+    private final AriaRole role;
+
+    Item(String label, AriaRole role) {
+      this.label = label;
+      this.role = role;
+    }
+
+    public String label() {
+      return label;
+    }
+  }
 
   private final Page page;
 
@@ -20,8 +40,12 @@ public final class BurgerMenu {
     this.page = page;
   }
 
+  public Locator openButton() {
+    return page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Open Menu"));
+  }
+
   public BurgerMenu open() {
-    page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Open Menu")).click();
+    openButton().click();
     return this;
   }
 
@@ -29,21 +53,27 @@ public final class BurgerMenu {
     page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Close Menu")).click();
   }
 
+  public Locator item(Item item) {
+    return page.getByRole(
+        item.role, new Page.GetByRoleOptions().setName(item.label).setExact(true));
+  }
+
+  /** Goes to the inventory. Use it from another page: from the inventory the URL doesn't change. */
   public InventoryPage allItems() {
-    page.getByTestId("inventory-sidebar-link").click();
+    Navigation.click(page, item(Item.ALL_ITEMS));
     return new InventoryPage(page);
   }
 
   public LoginPage logout() {
-    Navigation.click(page, page.getByTestId("logout-sidebar-link"));
+    Navigation.click(page, item(Item.LOGOUT));
     return new LoginPage(page);
   }
 
   public void resetAppState() {
-    page.getByTestId("reset-sidebar-link").click();
+    item(Item.RESET_APP_STATE).click();
   }
 
   public Locator aboutLink() {
-    return page.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName("About"));
+    return item(Item.ABOUT);
   }
 }

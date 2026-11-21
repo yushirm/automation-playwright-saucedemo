@@ -1,6 +1,8 @@
 package com.saucedemo.pages;
 
+import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
+import java.util.Optional;
 
 /** The order confirmation page, {@code /checkout-complete.html}. */
 public final class CheckoutCompletePage extends AppPage {
@@ -10,13 +12,22 @@ public final class CheckoutCompletePage extends AppPage {
   }
 
   @Override
-  protected String path() {
+  public String path() {
     return "/checkout-complete.html";
   }
 
   @Override
-  public String expectedTitle() {
-    return "Checkout: Complete!";
+  public Optional<String> expectedTitle() {
+    return Optional.of("Checkout: Complete!");
+  }
+
+  /** The confirmation heading, "Thank you for your order!". */
+  public Locator heading() {
+    return page.getByTestId("complete-header");
+  }
+
+  public Locator message() {
+    return page.getByTestId("complete-text");
   }
 
   public InventoryPage backHome() {
