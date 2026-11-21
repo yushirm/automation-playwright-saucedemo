@@ -23,13 +23,16 @@ public final class LoginPage extends BasePage {
   }
 
   /**
-   * Logs in and waits for the inventory. A plain click, not {@link Navigation#click}: the
-   * performance glitch user takes about 5 s to log in, and a retry would submit the form twice.
+   * Logs in and waits for the inventory to render, not only for the URL to change: the performance
+   * glitch user's inventory can render after the URL has changed. A plain click, not {@link
+   * Navigation#click}: the performance glitch user takes about 5 s to log in, and a retry would
+   * submit the form twice.
    */
   public InventoryPage loginAs(User user) {
     submit(user.username(), User.PASSWORD);
     InventoryPage inventory = new InventoryPage(page);
     page.waitForURL(SauceDemo.BASE_URL + inventory.path());
+    inventory.title().waitFor();
     return inventory;
   }
 

@@ -40,6 +40,15 @@ public final class ProductDetailPage extends AppPage {
     return Optional.empty();
   }
 
+  /**
+   * Waits until this page has replaced the one before it. The address changes first, and until the
+   * old page is gone a locator such as {@link #name()} can match the inventory's six products.
+   */
+  public ProductDetailPage awaitRendered() {
+    button("Back to products").waitFor();
+    return this;
+  }
+
   public Locator name() {
     return page.getByTestId("inventory-item-name");
   }

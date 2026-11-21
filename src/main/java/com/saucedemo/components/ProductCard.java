@@ -58,13 +58,13 @@ public final class ProductCard {
   /** Opens the product's page from its name. */
   public ProductDetailPage openFromName() {
     Navigation.click(page, detailLink().filter(hasInside(page.getByTestId("inventory-item-name"))));
-    return new ProductDetailPage(page, product);
+    return new ProductDetailPage(page, product).awaitRendered();
   }
 
   /** Opens the product's page from its picture. */
   public ProductDetailPage openFromImage() {
     Navigation.click(page, detailLink().filter(hasInside(page.getByRole(AriaRole.IMG))));
-    return new ProductDetailPage(page, product);
+    return new ProductDetailPage(page, product).awaitRendered();
   }
 
   /**
