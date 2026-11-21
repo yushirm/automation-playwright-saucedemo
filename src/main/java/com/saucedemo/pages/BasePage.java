@@ -20,7 +20,12 @@ public abstract class BasePage {
   }
 
   /** The page's path below {@link SauceDemo#BASE_URL}, for example {@code /cart.html}. */
-  protected abstract String path();
+  public abstract String path();
+
+  /** Goes straight to this page by its address, as a visitor who typed the URL would. */
+  public void openDirectly() {
+    page.navigate(url());
+  }
 
   /** A button found by its accessible name, matched exactly. */
   protected Locator button(String name) {

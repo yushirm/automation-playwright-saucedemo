@@ -13,7 +13,7 @@ public final class LoginPage extends BasePage {
   }
 
   @Override
-  protected String path() {
+  public String path() {
     return "/";
   }
 
@@ -23,19 +23,36 @@ public final class LoginPage extends BasePage {
   }
 
   /**
-   * Logs in and waits for the inventory. A plain click, not {@link Navigation#click}: the
-   * performance glitch user takes about 5 s to log in, and a retry would submit the form twice.
+   * Logs in and waits for the inventory to render, not only for the URL to change: the performance
+   * glitch user's inventory can render after the URL has changed. A plain click, not {@link
+   * Navigation#click}: the performance glitch user takes about 5 s to log in, and a retry would
+   * submit the form twice.
    */
   public InventoryPage loginAs(User user) {
     submit(user.username(), User.PASSWORD);
     InventoryPage inventory = new InventoryPage(page);
     page.waitForURL(SauceDemo.BASE_URL + inventory.path());
+    inventory.title().waitFor();
     return inventory;
   }
 
   /** Submits the form with any username and password, and stays here to check the outcome. */
   public LoginPage attemptLogin(String username, String password) {
     submit(username, password);
+    return this;
+  }
+
+  public Locator usernameField() {
+    return textbox("Username");
+  }
+
+  public Locator passwordField() {
+    return textbox("Password");
+  }
+
+  /** Closes the error with its dismiss button. */
+  public LoginPage dismissError() {
+    button("Dismiss error").click();
     return this;
   }
 

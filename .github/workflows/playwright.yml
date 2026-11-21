@@ -25,16 +25,25 @@ jobs:
           java-version: '25'
           check-latest: true
           cache: maven
+          cache-dependency-path: |
+            pom.xml
+            .github/workflows/playwright.yml
 
       # Compiles with Error Prone (-Werror), then runs Spotless, Checkstyle and PMD.
       - name: Check formatting and static analysis
         run: mvn -B -ntp verify -DskipTests
 
+      # The test jobs also need the exec and Allure plugins, which `verify` doesn't use. Fetching
+      # them here puts them in the saved cache; otherwise each test job fetches them from Maven
+      # Central itself, which has answered with HTTP 429 (rate limited).
+      - name: Download the plugins the test jobs use
+        run: mvn -B -ntp dependency:resolve-plugins
+
   test:
     name: Tests (${{ matrix.browser }})
-    # Wait for the static-analysis job, which downloads the Maven dependencies once and saves the
-    # cache. Without this, a pom.xml change (a new cache key) sends all four jobs to Maven Central
-    # at once, and Central has answered with HTTP 429 (rate limited).
+    # Wait for the static-analysis job, which downloads the Maven dependencies and plugins once and
+    # saves the cache. Without this, a pom.xml change (a new cache key) sends all four jobs to
+    # Maven Central at once, and Central has answered with HTTP 429 (rate limited).
     needs: checks
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -54,6 +63,9 @@ jobs:
           java-version: '25'
           check-latest: true
           cache: maven
+          cache-dependency-path: |
+            pom.xml
+            .github/workflows/playwright.yml
 
       - name: Install ${{ matrix.browser }}
         run: mvn -B -ntp exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install --with-deps ${{ matrix.browser }}"

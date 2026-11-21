@@ -2,13 +2,7 @@ package com.saucedemo.support;
 
 import com.saucedemo.pages.Navigation;
 import com.saucedemo.pages.Navigation.DroppedClick;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.lang.System.Logger.Level;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Locale;
 import org.junit.platform.launcher.TestExecutionListener;
@@ -39,10 +33,6 @@ public final class DroppedClickSummary implements TestExecutionListener {
   }
 
   private static void writeJobSummary(String browser, List<DroppedClick> dropped) {
-    String summaryFile = System.getenv("GITHUB_STEP_SUMMARY");
-    if (summaryFile == null || summaryFile.isBlank()) {
-      return;
-    }
     StringBuilder markdown = new StringBuilder(160);
     markdown
         .append("### Dropped clicks retried (")
@@ -58,15 +48,6 @@ public final class DroppedClickSummary implements TestExecutionListener {
         markdown.append("` |\n");
       }
     }
-    try {
-      Files.writeString(
-          Path.of(summaryFile),
-          markdown.toString(),
-          StandardCharsets.UTF_8,
-          StandardOpenOption.CREATE,
-          StandardOpenOption.APPEND);
-    } catch (IOException e) {
-      throw new UncheckedIOException("Could not write the job summary to " + summaryFile, e);
-    }
+    JobSummary.append(markdown.toString());
   }
 }
