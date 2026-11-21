@@ -32,6 +32,10 @@ jobs:
 
   test:
     name: Tests (${{ matrix.browser }})
+    # Wait for the static-analysis job, which downloads the Maven dependencies once and saves the
+    # cache. Without this, a pom.xml change (a new cache key) sends all four jobs to Maven Central
+    # at once, and Central has answered with HTTP 429 (rate limited).
+    needs: checks
     runs-on: ubuntu-24.04
     timeout-minutes: 20
 

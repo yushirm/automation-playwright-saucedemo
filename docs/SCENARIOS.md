@@ -243,13 +243,74 @@ A click that arrives within about 40 ms of the confirmation page rendering can b
 - **The retry:** the suite's click helper waited 10 s and clicked once more, in all four affected tests, and the second click was dropped too.
 - **Typing:** in two other tests, the first-name field "did not hold 'Rick' after typing".
 
+A second attempt, retrying after 2 s instead of 10 s ([run 44749493891](https://github.com/yushirm/Automation-Selenium-SauceDemo/actions/runs/44749493891)), was dropped as well: the recorder logged neither click. Three of that run's four failures were typing that never landed. The change was reverted.
+
+#### Is it the browser or driver version?
+
+Investigated on 20 November 2026 from the CI logs and the runner images' published software lists. Every run used Selenium.WebDriver 4.53.0, and each runner image ships a matching Chrome and ChromeDriver.
+
+| Run | Time (UTC) | Runner image | Chrome and ChromeDriver | Result |
+|---|---|---|---|---|
+| 33 (`main`) | 19 Nov 06:52 | ubuntu-26.04 20261111.196 | 157.0.8103.50 | green |
+| 34, attempt 1 | 20 Nov 10:20 | 20261111.196 | 157.0.8103.50 | red, 4 of 12 |
+| 34, attempt 2 | 12:12 | 20261116.202 | 157.0.8103.78 | red, 6 of 12 |
+| 35, attempt 2 | 12:38 | 20261111.196 | 157.0.8103.50 | red, 2 of 12 |
+| 36, attempts 1 and 2 | 12:42, 12:45 | 20261111.196 | 157.0.8103.50 | green, green |
+| 37 (`main`) | 12:48 | 20261111.196 | 157.0.8103.50 | green |
+| 38 | 12:48 | 20261116.88 (AWS) | not published | green |
+| 39 (`main`) | 12:57 | 20261111.196 | 157.0.8103.50 | red, 7 of 12 |
+| 40 | 12:57 | 20261116.202 | 157.0.8103.78 | red, 6 of 12 |
+| 41 | 14:01 | 20261116.202 | 157.0.8103.78 | red, 4 of 12 |
+| [44797671144](https://github.com/yushirm/Automation-Selenium-SauceDemo/actions/runs/44797671144) | 18:59 | 20261116.202 | 157.0.8103.78 | red, 7 of 12 (verbose ChromeDriver log) |
+| [44798460944](https://github.com/yushirm/Automation-Selenium-SauceDemo/actions/runs/44798460944) | 19:05 | 20261116.202 | 157.0.8103.78 | red, 8 of 12 |
+
+The same image, with Chrome and ChromeDriver 157.0.8103.50, was green on 19 November and both green and red within 20 minutes on 20 November. So the Chrome rollout from .50 to .78 doesn't explain it. Every .78 run so far was red, so .78 may make it worse, but .50 fails too.
+
+Two more things the logs show:
+
+- **Which clicks are lost.** Navigating clicks after login: the cart icon, Checkout, Continue, Continue Shopping, Cancel, Finish and Back Home. The Login click, which also navigates, has not been lost in any run, and nor have Add to cart and Remove, which don't navigate. In run 44798460944 every cart-icon click was lost, while Add to cart clicks in the same tests worked.
+- **The Playwright suite at the same times.** It passed on Chromium at 12:54, 13:16 and 13:50. It uses its own bundled Chromium (build 1255, Chrome 159), not the runner's Chrome, so this shows the site taking input from a different browser at those moments. It doesn't separate the site from the browser.
+
+#### Where the input is lost: inside Chrome, before the DOM
+
+ChromeDriver's verbose log from run 44797671144 (`GivenShoppingCartOpen_WhenCheckoutButtonClicked`):
+
+| Click | DevTools ids | Coordinates | Parameters | Chrome's response | Reached the page? |
+|---|---|---|---|---|---|
+| Cart icon (worked) | 671–673 | (1865, 30) | left button, `clickCount` 1, moved, pressed, released | acknowledged | yes |
+| Checkout | 778–780 | (1490, 409) | identical | acknowledged | no |
+| Checkout, retry 10 s later | 1085–1087 | (1490, 409) | identical | acknowledged | no |
+
+- **The target was right.** (1490, 409) is the exact centre of the Checkout button, whose rect was `[1380, 392, 220, 34]`. The button was topmost there.
+- **No navigation was under way.** Between the click and the retry, ChromeDriver checked frame trees and pending navigations (118 and 98 times), all clear.
+- **The page never saw the click.** Its capture-phase click listener on `document` recorded neither Checkout click.
+
+So the driver, the coordinates and the WebDriver protocol are ruled out. Chrome acknowledges the input and it is lost before it becomes a DOM event. Why is unknown. The investigation is parked as a known issue in the Selenium repo, and its CI keeps a verbose ChromeDriver log for every test.
+
 ### What the two have in common, and what they don't
 
-In common: a real click on a ready button, no error, no navigation, on the cart, checkout and confirmation pages.
+In common: a real click on a ready button that should navigate, with no error and no navigation.
 
-The difference: in WebKit, a short pause before the click was enough to stop the failures. In the Selenium run the page was still ignoring input 10 s later. That looks less like a click arriving too early and more like the page not taking input for a while. Neither suite has caught the cause yet.
+The difference: in WebKit, a 500 ms pause before the click stopped the failures (0 of 20). Under Selenium in Chrome, the page ignored both clicks and typing for at least 10 s, and Chrome acknowledged the input it lost. That looks less like a click arriving too early and more like the page not taking navigating input for a while. The cause is still unknown.
 
-Decided in PR 2 review: v2 handles it in PR 3, with one navigating-click helper in the page-object base: click, wait for the URL to change, and click once more if it didn't, with no sleeps. That would catch the WebKit case. It would not have caught the Selenium run above, where the retry was dropped as well.
+#### How the Playwright suite treats it: tolerated, and reported
+
+A dropped click is a defect a real user would hit, so the suite tolerates it without hiding it. `Navigation.click` clicks, waits up to 2 s for the URL to change, and if it hasn't, clicks once more; the page assertion then decides. There are no sleeps. Every retry is reported in three places:
+
+- **Allure:** a step "Click dropped on <url>, retried once", and the tag `dropped-click` on the test.
+- **The end of the run:** a log line "Dropped clicks retried (<browser>): N", listing each control and page. It is printed even when N is 0.
+- **GitHub Actions:** the same count and list in each test job's summary.
+
+Observed so far (Playwright 1.65.1, WebKit 27.2, 20 November 2026):
+
+| Browser | Runs | Clicks dropped and retried | Tests that then failed |
+|---|---|---|---|
+| WebKit | 5 full runs | 1 (Back Home on `checkout-complete.html`) | 0 |
+| Chromium | 3 full runs | 0 | 0 |
+
+Before the retry existed, the same Back Home click failed its test in 2 of 15 WebKit runs, and in 0 of 20 with a 500 ms pause before the click.
+
+The retry would not have saved the Selenium runs above, where the second click was dropped too.
 
 ## Decisions on observed behaviour
 

@@ -1,26 +1,31 @@
 package com.saucedemo.pages;
 
-import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 
 /** The cart page, {@code /cart.html}. */
-public class CartPage {
-
-  private final Page page;
+public final class CartPage extends AppPage {
 
   public CartPage(Page page) {
-    this.page = page;
+    super(page);
   }
 
-  public Locator getTitle() {
-    return page.locator("[data-test='title']");
+  @Override
+  protected String path() {
+    return "/cart.html";
   }
 
-  public void checkout() {
-    page.locator("[data-test='checkout']").click();
+  @Override
+  public String expectedTitle() {
+    return "Your Cart";
   }
 
-  public void continueShopping() {
-    page.locator("[data-test='continue-shopping']").click();
+  public CheckoutInformationPage checkout() {
+    Navigation.click(page, button("Checkout"));
+    return new CheckoutInformationPage(page);
+  }
+
+  public InventoryPage continueShopping() {
+    Navigation.click(page, button("Continue Shopping"));
+    return new InventoryPage(page);
   }
 }

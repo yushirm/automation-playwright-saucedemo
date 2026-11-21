@@ -2,31 +2,50 @@ package com.saucedemo.pages;
 
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
+import com.saucedemo.SauceDemo;
+import com.saucedemo.domain.User;
 
 /** The login page at the site root. */
-public class LoginPage {
-
-  private final Page page;
+public final class LoginPage extends BasePage {
 
   public LoginPage(Page page) {
-    this.page = page;
+    super(page);
   }
 
-  public void navigate() {
-    page.navigate("https://www.saucedemo.com");
+  @Override
+  protected String path() {
+    return "/";
+  }
+
+  public LoginPage open() {
+    page.navigate(SauceDemo.BASE_URL + path());
+    return this;
   }
 
   /**
-   * Submits the login form. A valid user lands on the inventory; anything else leaves an error on
-   * this page.
+   * Logs in and waits for the inventory. A plain click, not {@link Navigation#click}: the
+   * performance glitch user takes about 5 s to log in, and a retry would submit the form twice.
    */
-  public void login(String username, String password) {
-    page.getByPlaceholder("Username").fill(username);
-    page.getByPlaceholder("Password").fill(password);
-    page.locator("[data-test='login-button']").click();
+  public InventoryPage loginAs(User user) {
+    submit(user.username(), User.PASSWORD);
+    InventoryPage inventory = new InventoryPage(page);
+    page.waitForURL(SauceDemo.BASE_URL + inventory.path());
+    return inventory;
   }
 
-  public Locator getErrorMessage() {
-    return page.locator("[data-test='error']");
+  /** Submits the form with any username and password, and stays here to check the outcome. */
+  public LoginPage attemptLogin(String username, String password) {
+    submit(username, password);
+    return this;
+  }
+
+  public Locator error() {
+    return page.getByTestId("error");
+  }
+
+  private void submit(String username, String password) {
+    textbox("Username").fill(username);
+    textbox("Password").fill(password);
+    button("Login").click();
   }
 }

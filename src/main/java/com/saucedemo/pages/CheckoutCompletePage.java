@@ -1,22 +1,26 @@
 package com.saucedemo.pages;
 
-import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 
 /** The order confirmation page, {@code /checkout-complete.html}. */
-public class CheckoutCompletePage {
-
-  private final Page page;
+public final class CheckoutCompletePage extends AppPage {
 
   public CheckoutCompletePage(Page page) {
-    this.page = page;
+    super(page);
   }
 
-  public Locator getTitle() {
-    return page.locator("[data-test='title']");
+  @Override
+  protected String path() {
+    return "/checkout-complete.html";
   }
 
-  public void backToHome() {
-    page.locator("[data-test='back-to-products']").click();
+  @Override
+  public String expectedTitle() {
+    return "Checkout: Complete!";
+  }
+
+  public InventoryPage backHome() {
+    Navigation.click(page, button("Back Home"));
+    return new InventoryPage(page);
   }
 }

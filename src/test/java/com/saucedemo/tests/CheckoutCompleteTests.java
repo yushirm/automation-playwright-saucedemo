@@ -1,40 +1,34 @@
 package com.saucedemo.tests;
 
-import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import static com.saucedemo.domain.Customer.validCustomer;
+import static com.saucedemo.domain.Product.BACKPACK;
+import static com.saucedemo.domain.User.STANDARD;
+import static com.saucedemo.support.PageAssertions.assertOpen;
 
-import com.saucedemo.base.BaseTest;
-import com.saucedemo.pages.CartPage;
+import com.microsoft.playwright.Page;
+import com.saucedemo.SauceDemo;
 import com.saucedemo.pages.CheckoutCompletePage;
-import com.saucedemo.pages.CheckoutStepOnePage;
-import com.saucedemo.pages.CheckoutStepTwoPage;
-import com.saucedemo.pages.InventoryPage;
+import com.saucedemo.support.SauceDemoTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+@SauceDemoTest
 @DisplayName("Checkout Complete Tests")
-class CheckoutCompleteTests extends BaseTest {
+class CheckoutCompleteTests {
 
-  private CheckoutCompletePage checkoutCompletePage;
+  private Page page;
+  private CheckoutCompletePage complete;
 
   @BeforeEach
-  void setUp() {
-    loginAsStandardUser();
-    InventoryPage inventoryPage = new InventoryPage(page);
-    inventoryPage.addBackpackToCart();
-    inventoryPage.openCart();
-    new CartPage(page).checkout();
-    new CheckoutStepOnePage(page).fillForm("Rick", "Grimes", "2293");
-    new CheckoutStepTwoPage(page).finish();
-    checkoutCompletePage = new CheckoutCompletePage(page);
+  void placeOrder(SauceDemo app, Page page) {
+    this.page = page;
+    complete = app.shopper(STANDARD).adds(BACKPACK).checksOutAs(validCustomer()).confirms();
   }
 
   @Test
   @DisplayName("Clicking back to home returns to inventory")
   void clickBackToHome_returnsToInventory() {
-    checkoutCompletePage.backToHome();
-
-    InventoryPage inventoryPage = new InventoryPage(page);
-    assertThat(inventoryPage.getTitle()).hasText("Products");
+    assertOpen(page, complete.backHome());
   }
 }

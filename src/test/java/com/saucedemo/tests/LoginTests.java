@@ -1,42 +1,46 @@
 package com.saucedemo.tests;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import static com.saucedemo.domain.LoginError.USERNAME_AND_PASSWORD_DO_NOT_MATCH;
+import static com.saucedemo.domain.User.STANDARD;
+import static com.saucedemo.support.PageAssertions.assertOpen;
 
-import com.saucedemo.base.BaseTest;
-import com.saucedemo.pages.InventoryPage;
+import com.microsoft.playwright.Page;
+import com.saucedemo.SauceDemo;
+import com.saucedemo.domain.User;
 import com.saucedemo.pages.LoginPage;
+import com.saucedemo.support.SauceDemoTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+@SauceDemoTest
 @DisplayName("Login Page Tests")
-class LoginTests extends BaseTest {
+class LoginTests {
 
-  private LoginPage loginPage;
+  private static final String UNKNOWN_USERNAME = "invalid_user";
+
+  private Page page;
+  private LoginPage login;
 
   @BeforeEach
-  void setUp() {
-    loginPage = new LoginPage(page);
-    loginPage.navigate();
+  void openLoginPage(SauceDemo app, Page page) {
+    this.page = page;
+    login = app.loginPage().open();
   }
 
   @Test
   @DisplayName("Login with valid credentials redirects to inventory page")
   void loginWithValidCredentials_redirectsToInventory() {
-    loginPage.login(VALID_USERNAME, VALID_PASSWORD);
-
-    InventoryPage inventoryPage = new InventoryPage(page);
-    assertThat(inventoryPage.getTitle()).hasText("Products");
-    assertThat(page).hasURL(BASE_URL + "/inventory.html");
+    assertOpen(page, login.loginAs(STANDARD));
   }
 
   @Test
   @DisplayName("Login with invalid credentials displays error message")
   void loginWithInvalidCredentials_displaysErrorMessage() {
-    loginPage.login("invalid_user", VALID_PASSWORD);
+    login.attemptLogin(UNKNOWN_USERNAME, User.PASSWORD);
 
-    assertThat(loginPage.getErrorMessage())
-        .containsText("Username and password do not match any user in this service");
-    assertThat(page).hasURL(BASE_URL + "/");
+    assertThat(login.error()).containsText(USERNAME_AND_PASSWORD_DO_NOT_MATCH.message());
+    assertOpen(page, login);
   }
 }
