@@ -1,13 +1,13 @@
 package com.saucedemo.tests;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
-import static com.saucedemo.domain.Product.BACKPACK;
 import static com.saucedemo.domain.User.VISUAL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.saucedemo.SauceDemo;
 import com.saucedemo.domain.Product;
 import com.saucedemo.domain.SortOrder;
+import com.saucedemo.pages.CartPage;
 import com.saucedemo.pages.InventoryPage;
 import com.saucedemo.support.KnownIssue;
 import com.saucedemo.support.SauceDemoTest;
@@ -37,17 +37,27 @@ class VisualUserTests {
     assertEquals(catalogue, inventory.productPrices());
   }
 
+  /**
+   * The wrong prices are random on each login, so one product's price could match by chance. All
+   * six are compared, and the test passes only if every one matches.
+   */
   @Test
   @Scenario("USER-V1")
-  @KnownIssue("visual_user's inventory price differs from the price in the cart and at checkout")
-  @DisplayName("A product costs the same in the inventory as in the cart")
-  void inventoryPrice_matchesCartPrice(SauceDemo app) {
+  @KnownIssue("visual_user's inventory prices differ from the prices in the cart and at checkout")
+  @DisplayName("Every product costs the same in the inventory as in the cart")
+  void inventoryPrices_matchCartPrices(SauceDemo app) {
     InventoryPage inventory = app.shopper(VISUAL).inventory();
-    String inventoryPrice = inventory.product(BACKPACK).price().innerText();
-    inventory.product(BACKPACK).addToCart();
+    List<BigDecimal> shown = inventory.productPrices();
+    Product[] all = Product.values();
+    for (Product product : all) {
+      inventory.product(product).addToCart();
+    }
 
-    var cart = inventory.header().openCart();
+    CartPage cart = inventory.header().openCart();
 
-    assertThat(cart.line(BACKPACK).price()).hasText(inventoryPrice);
+    for (Product product : all) {
+      BigDecimal inInventory = shown.get(SortOrder.NAME_A_TO_Z.expectedOrder().indexOf(product));
+      assertThat(cart.line(product).price()).hasText("$" + inInventory);
+    }
   }
 }
