@@ -117,17 +117,24 @@ Dependabot keeps the Maven dependencies and the SHA-pinned Actions up to date.
 
 ## Test coverage
 
-| Test area | Tests | Description |
-|---|---|---|
-| Login | 2 | Valid and invalid credentials |
-| Inventory | 3 | Add and remove items, cart navigation |
-| Cart | 2 | Checkout, continue shopping |
-| Checkout step one | 2 | Form submission, cancel |
-| Checkout step two | 2 | Finish, cancel |
-| Checkout complete | 1 | Back to products |
-| **Total** | **12** | |
+77 of the 83 scenarios in [docs/SCENARIOS.md](docs/SCENARIOS.md) are covered: 64 by passing tests (the three browser rows by the CI matrix) and 13 by known-issue tests. The other six are Dynamic Catalog (out of scope), the `performance_glitch_user` timings (PR 5), and `visual_user` layout and the accessibility check (PR 6).
 
-[docs/SCENARIOS.md](docs/SCENARIOS.md) maps every SauceDemo behaviour against these tests, and [docs/AUDIT.md](docs/AUDIT.md) sets out the plan for widening them.
+| Test area | Tests | Description |
+|---|---:|---|
+| Login | 13 | Every user, wrong and missing credentials, dismissing the error, the session cookie |
+| Direct access when logged out | 6 | Each protected page refuses a visitor who is not logged in |
+| Inventory | 41 | Product details, four sort orders, adding and removing, button toggle, across users |
+| Product detail | 16 | Opening from name and picture, add and remove, back, unknown id |
+| Cart | 14 | Lines, removing, reload, logout and login, empty-cart checkout |
+| Header and menu | 18 | Menu entries, All Items, About, Logout, Reset App State, header on every page |
+| Footer | 4 | Social links, copyright |
+| Checkout step one | 5 | Validation messages, submit, cancel |
+| Checkout step two | 11 | Lines, item total, tax and order total, payment and shipping, finish, cancel |
+| Checkout complete | 3 | Confirmation, empty cart, back home |
+| Deliberate defects | 21 | `problem_user`, `error_user` and `visual_user`, all known issues |
+| **Total** | **152** | 23 of them known issues |
+
+Counts are test invocations on Chromium: a parameterised test counts once per argument.
 
 ## How the tests are written
 
@@ -156,11 +163,24 @@ class CheckoutCompleteTests {
 - **`@SauceDemoTest`** registers the browser fixture: a fresh context and page per test, and a trace and screenshot kept only on failure. Tests and setup methods can ask for `SauceDemo` and `Page`.
 - **Page objects** live in `pages`, and the parts shared between pages in `components`. A navigating action returns the page it leads to.
 - **Flows** (`flows`) string page objects together into a user's journey, such as `Shopper` and `Checkout`.
-- **Domain types** replace magic strings: `User`, `Product`, `LoginError` and `Customer`. Start a customer from `validCustomer()` and change only what the test is about.
+- **Domain types** replace magic strings: `User`, `Product`, `SortOrder`, `LoginError`, `CheckoutError` and `Customer`. `Pricing` works out the item total, 8% tax and order total from the catalogue. Start a customer from `validCustomer()` and change only what the test is about.
 - **Locators:** `getByRole` where the accessible name is stable and meaningful, `getByTestId` (`data-test`) otherwise.
 - **Assertions:** web-first only, so they retry until the page catches up.
 - **Navigating clicks** go through `Navigation.click`, which retries once if the click didn't change the page. SauceDemo sometimes drops a click that lands just after a page renders; see [docs/SCENARIOS.md](docs/SCENARIOS.md). Retries are never silent: each one is an Allure step and tags the test `dropped-click`, and every run ends with "Dropped clicks retried (<browser>): N", also written to the GitHub job summary.
+- **Parameterised tests** run one check across the users or products it applies to: the six accounts, the six products, the four sort orders. Where an account is broken on purpose, the test for it says so (below).
 - **No fixed waits:** `NoSleepsTest` fails the build if any code calls `Thread.sleep`, `TimeUnit.sleep` or `waitForTimeout`.
+
+### Known issues
+
+Some SauceDemo behaviour is wrong, either on purpose (`problem_user`, `error_user`, `visual_user`) or by accident (an empty cart can be checked out, Reset App State leaves the Remove buttons). Each is a test that asserts the *correct* behaviour and carries `@KnownIssue("why")`.
+
+- It runs every time and is never disabled.
+- If it fails on an assertion, as expected, it is reported as skipped with the reason as the message, tagged `known-issue` in Allure, and listed at the end of the run as "Known issues failing as expected (<browser>): N" and in the GitHub job summary. A failure of any other kind, such as a locator that matches nothing, is a real failure.
+- If it passes, the site has been fixed and the build fails, telling you to remove the annotation.
+
+Surefire counts these as skipped: its summary has no "expected failure" status.
+
+Tests also carry `@Scenario("LOGIN-02")`, naming the matrix rows they cover. `ScenarioCoverageTest` fails the build if a test names a row that does not exist, or a row has neither a test nor a reason in its list.
 
 ### Design notes
 
@@ -176,15 +196,15 @@ config/
 src/
 ├── main/java/com/saucedemo/
 │   ├── SauceDemo.java             Entry point: base URL, login page, shopper
-│   ├── domain/                    User, Product, LoginError, Customer
+│   ├── domain/                    User, Product, SortOrder, Pricing, Customer, errors
 │   ├── pages/                     Page objects, BasePage, AppPage, Navigation
-│   ├── components/                Header, BurgerMenu, CartBadge, ProductCard
+│   ├── components/                Header, Footer, BurgerMenu, CartBadge, ProductCard, CartLine
 │   └── flows/                     Shopper, Checkout
 └── test/
     ├── java/com/saucedemo/
-    │   ├── support/               PlaywrightExtension, @SauceDemoTest, PageAssertions,
-    │   │                          DroppedClickSummary
-    │   ├── architecture/          NoSleepsTest, ObjectModelRulesTest
+    │   ├── support/               PlaywrightExtension, @SauceDemoTest, @KnownIssue, @Scenario,
+    │   │                          PageAssertions, run summaries
+    │   ├── architecture/          NoSleepsTest, ObjectModelRulesTest, ScenarioCoverageTest
     │   └── tests/                 Test classes
     └── resources/
         └── allure.properties      Allure settings
