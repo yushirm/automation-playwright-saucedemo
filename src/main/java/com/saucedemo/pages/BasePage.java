@@ -1,13 +1,16 @@
 package com.saucedemo.pages;
 
-import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
-
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.AriaRole;
 import com.saucedemo.SauceDemo;
 
-/** What every page has: the browser page it drives and the path it lives at. */
+/**
+ * What every page has: the browser page it drives and the path it lives at.
+ *
+ * <p>Page objects speak the UI and never assert. They expose locators and values; tests decide what
+ * is right. {@code ObjectModelRulesTest} enforces this.
+ */
 public abstract class BasePage {
 
   protected final Page page;
@@ -29,9 +32,9 @@ public abstract class BasePage {
     return page.getByRole(AriaRole.TEXTBOX, exactName(name));
   }
 
-  /** Asserts, with Playwright's retrying assertions, that the browser is on this page. */
-  public void assertIsOpen() {
-    assertThat(page).hasURL(SauceDemo.BASE_URL + path());
+  /** The page's full address. Tests assert on it; page objects never assert. */
+  public String url() {
+    return SauceDemo.BASE_URL + path();
   }
 
   private static Page.GetByRoleOptions exactName(String name) {

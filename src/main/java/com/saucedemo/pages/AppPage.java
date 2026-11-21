@@ -1,7 +1,5 @@
 package com.saucedemo.pages;
 
-import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
-
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.saucedemo.components.BurgerMenu;
@@ -14,8 +12,8 @@ public abstract class AppPage extends BasePage {
     super(page);
   }
 
-  /** The title the page shows under the header, for example "Your Cart". */
-  protected abstract String expectedTitle();
+  /** The title the page shows under the header when it is open, for example "Your Cart". */
+  public abstract String expectedTitle();
 
   public Header header() {
     return new Header(page);
@@ -27,11 +25,5 @@ public abstract class AppPage extends BasePage {
 
   public Locator title() {
     return page.getByTestId("title");
-  }
-
-  @Override
-  public void assertIsOpen() {
-    super.assertIsOpen();
-    assertThat(title()).hasText(expectedTitle());
   }
 }

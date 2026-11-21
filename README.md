@@ -135,29 +135,37 @@ A test asks for a `SauceDemo` and reads like the journey it checks:
 
 ```java
 @SauceDemoTest
-class CheckoutStepTwoTests {
+class CheckoutCompleteTests {
 
-  private CheckoutOverviewPage overview;
+  private Page page;
+  private CheckoutCompletePage complete;
 
   @BeforeEach
-  void reachOverview(SauceDemo app) {
-    overview = app.shopper(STANDARD).adds(BACKPACK).checksOutAs(validCustomer());
+  void placeOrder(SauceDemo app, Page page) {
+    this.page = page;
+    complete = app.shopper(STANDARD).adds(BACKPACK).checksOutAs(validCustomer()).confirms();
   }
 
   @Test
-  void clickFinish_completesPurchase() {
-    overview.finish().assertIsOpen();
+  void clickBackToHome_returnsToInventory() {
+    assertOpen(page, complete.backHome());
   }
 }
 ```
 
-- **`@SauceDemoTest`** registers the browser fixture: a fresh context and page per test, and a trace and screenshot kept only on failure.
+- **`@SauceDemoTest`** registers the browser fixture: a fresh context and page per test, and a trace and screenshot kept only on failure. Tests and setup methods can ask for `SauceDemo` and `Page`.
 - **Page objects** live in `pages`, and the parts shared between pages in `components`. A navigating action returns the page it leads to.
+- **Flows** (`flows`) string page objects together into a user's journey, such as `Shopper` and `Checkout`.
 - **Domain types** replace magic strings: `User`, `Product`, `LoginError` and `Customer`. Start a customer from `validCustomer()` and change only what the test is about.
 - **Locators:** `getByRole` where the accessible name is stable and meaningful, `getByTestId` (`data-test`) otherwise.
 - **Assertions:** web-first only, so they retry until the page catches up.
 - **Navigating clicks** go through `Navigation.click`, which retries once if the click didn't change the page. SauceDemo sometimes drops a click that lands just after a page renders; see [docs/SCENARIOS.md](docs/SCENARIOS.md). Retries are never silent: each one is an Allure step and tags the test `dropped-click`, and every run ends with "Dropped clicks retried (<browser>): N", also written to the GitHub job summary.
 - **No fixed waits:** `NoSleepsTest` fails the build if any code calls `Thread.sleep`, `TimeUnit.sleep` or `waitForTimeout`.
+
+### Design notes
+
+- **Page objects speak the UI; flows speak the domain.** A page object's methods are named for what the user sees: `CheckoutOverviewPage.finish()` clicks the Finish button. A flow's methods are named for what the user means: `Checkout.confirms()` places the order, by calling `finish()`. Both exist on purpose, so tests can read as the journey and page objects as the screen.
+- **Page objects never assert.** Page objects, components and flows expose locators (`title()`, `cartBadge().count()`) and values (`url()`, `expectedTitle()`). Tests decide what is right, through `assertThat` or `PageAssertions.assertOpen`. `ObjectModelRulesTest` fails the build if code under `src/main` calls Playwright's assertions.
 
 ## Project structure
 
@@ -171,11 +179,12 @@ src/
 │   ├── domain/                    User, Product, LoginError, Customer
 │   ├── pages/                     Page objects, BasePage, AppPage, Navigation
 │   ├── components/                Header, BurgerMenu, CartBadge, ProductCard
-│   └── flows/                     Shopper
+│   └── flows/                     Shopper, Checkout
 └── test/
     ├── java/com/saucedemo/
-    │   ├── support/               PlaywrightExtension and @SauceDemoTest
-    │   ├── architecture/          NoSleepsTest
+    │   ├── support/               PlaywrightExtension, @SauceDemoTest, PageAssertions,
+    │   │                          DroppedClickSummary
+    │   ├── architecture/          NoSleepsTest, ObjectModelRulesTest
     │   └── tests/                 Test classes
     └── resources/
         └── allure.properties      Allure settings

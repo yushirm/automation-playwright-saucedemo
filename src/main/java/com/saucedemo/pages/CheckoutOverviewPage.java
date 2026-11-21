@@ -15,7 +15,7 @@ public final class CheckoutOverviewPage extends AppPage {
   }
 
   @Override
-  protected String expectedTitle() {
+  public String expectedTitle() {
     return "Checkout: Overview";
   }
 

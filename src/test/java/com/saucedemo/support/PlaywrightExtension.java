@@ -47,8 +47,9 @@ public final class PlaywrightExtension
   /** The context and page one test runs in. */
   private record TestBrowser(BrowserContext context, Page page) {}
 
-  // The context and page outlive this method: they are kept in the test's store and closed in
-  // afterEach. PMD's CloseResource rule expects them closed here.
+  // The context and page outlive this method by design: they go into the test's store and are
+  // closed in afterEach, by test.context().close(), which closes the page with it. PMD's
+  // CloseResource rule expects them closed here.
   @SuppressWarnings("PMD.CloseResource")
   @Override
   public void beforeEach(ExtensionContext extensionContext) {
@@ -101,7 +102,10 @@ public final class PlaywrightExtension
         .computeIfAbsent(Session.class, key -> openSession(), Session.class);
   }
 
-  // The browser lives for the whole run: Session closes it when JUnit closes the root store.
+  // The browser and Playwright live for the whole run by design: they are closed in
+  // Session.close(),
+  // which JUnit calls when it closes the root store at the end of the run. PMD's CloseResource rule
+  // expects them closed here.
   @SuppressWarnings("PMD.CloseResource")
   private static Session openSession() {
     Playwright playwright = Playwright.create();

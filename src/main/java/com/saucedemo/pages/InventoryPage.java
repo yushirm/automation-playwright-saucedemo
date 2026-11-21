@@ -17,7 +17,7 @@ public final class InventoryPage extends AppPage {
   }
 
   @Override
-  protected String expectedTitle() {
+  public String expectedTitle() {
     return "Products";
   }
 

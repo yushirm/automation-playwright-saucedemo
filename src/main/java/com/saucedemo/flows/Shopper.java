@@ -3,12 +3,12 @@ package com.saucedemo.flows;
 import com.saucedemo.domain.Customer;
 import com.saucedemo.domain.Product;
 import com.saucedemo.pages.CartPage;
-import com.saucedemo.pages.CheckoutOverviewPage;
 import com.saucedemo.pages.InventoryPage;
 
 /**
  * A logged-in user, for tests that read like the journey they check, for example {@code
- * app.shopper(STANDARD).adds(BACKPACK, BIKE_LIGHT).checksOutAs(validCustomer()).finish()}.
+ * app.shopper(STANDARD).adds(BACKPACK, BIKE_LIGHT).checksOutAs(validCustomer()).confirms()}. Flows
+ * speak the domain; the page objects they drive speak the UI.
  */
 public final class Shopper {
 
@@ -35,7 +35,7 @@ public final class Shopper {
   }
 
   /** Opens the cart, checks out, enters the customer's details and arrives at the overview. */
-  public CheckoutOverviewPage checksOutAs(Customer customer) {
-    return opensCart().checkout().fillIn(customer).continueToOverview();
+  public Checkout checksOutAs(Customer customer) {
+    return new Checkout(opensCart().checkout().fillIn(customer).continueToOverview());
   }
 }

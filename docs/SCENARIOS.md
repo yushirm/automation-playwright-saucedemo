@@ -261,19 +261,37 @@ Investigated on 20 November 2026 from the CI logs and the runner images' publish
 | 39 (`main`) | 12:57 | 20261111.196 | 157.0.8103.50 | red, 7 of 12 |
 | 40 | 12:57 | 20261116.202 | 157.0.8103.78 | red, 6 of 12 |
 | 41 | 14:01 | 20261116.202 | 157.0.8103.78 | red, 4 of 12 |
+| [44797671144](https://github.com/yushirm/Automation-Selenium-SauceDemo/actions/runs/44797671144) | 18:59 | 20261116.202 | 157.0.8103.78 | red, 7 of 12 (verbose ChromeDriver log) |
+| [44798460944](https://github.com/yushirm/Automation-Selenium-SauceDemo/actions/runs/44798460944) | 19:05 | 20261116.202 | 157.0.8103.78 | red, 8 of 12 |
 
 The same image, with Chrome and ChromeDriver 157.0.8103.50, was green on 19 November and both green and red within 20 minutes on 20 November. So the Chrome rollout from .50 to .78 doesn't explain it. Every .78 run so far was red, so .78 may make it worse, but .50 fails too.
 
 Two more things the logs show:
 
-- **Which tests fail.** The failures are on the cart and checkout pages. Login and inventory-only tests have not failed in any run.
+- **Which clicks are lost.** Navigating clicks after login: the cart icon, Checkout, Continue, Continue Shopping, Cancel, Finish and Back Home. The Login click, which also navigates, has not been lost in any run, and nor have Add to cart and Remove, which don't navigate. In run 44798460944 every cart-icon click was lost, while Add to cart clicks in the same tests worked.
 - **The Playwright suite at the same times.** It passed on Chromium at 12:54, 13:16 and 13:50. It uses its own bundled Chromium (build 1255, Chrome 159), not the runner's Chrome, so this shows the site taking input from a different browser at those moments. It doesn't separate the site from the browser.
+
+#### Where the input is lost: inside Chrome, before the DOM
+
+ChromeDriver's verbose log from run 44797671144 (`GivenShoppingCartOpen_WhenCheckoutButtonClicked`):
+
+| Click | DevTools ids | Coordinates | Parameters | Chrome's response | Reached the page? |
+|---|---|---|---|---|---|
+| Cart icon (worked) | 671–673 | (1865, 30) | left button, `clickCount` 1, moved, pressed, released | acknowledged | yes |
+| Checkout | 778–780 | (1490, 409) | identical | acknowledged | no |
+| Checkout, retry 10 s later | 1085–1087 | (1490, 409) | identical | acknowledged | no |
+
+- **The target was right.** (1490, 409) is the exact centre of the Checkout button, whose rect was `[1380, 392, 220, 34]`. The button was topmost there.
+- **No navigation was under way.** Between the click and the retry, ChromeDriver checked frame trees and pending navigations (118 and 98 times), all clear.
+- **The page never saw the click.** Its capture-phase click listener on `document` recorded neither Checkout click.
+
+So the driver, the coordinates and the WebDriver protocol are ruled out. Chrome acknowledges the input and it is lost before it becomes a DOM event. Why is unknown. The investigation is parked as a known issue in the Selenium repo, and its CI keeps a verbose ChromeDriver log for every test.
 
 ### What the two have in common, and what they don't
 
-In common: a real click on a ready button, no error, no navigation, on the cart, checkout and confirmation pages.
+In common: a real click on a ready button that should navigate, with no error and no navigation.
 
-The difference: in WebKit, a 500 ms pause before the click stopped the failures (0 of 20). Under Selenium in Chrome, the page ignored both clicks and typing for at least 10 s. That looks less like a click arriving too early and more like the page not taking input for a while. The cause is still unknown.
+The difference: in WebKit, a 500 ms pause before the click stopped the failures (0 of 20). Under Selenium in Chrome, the page ignored both clicks and typing for at least 10 s, and Chrome acknowledged the input it lost. That looks less like a click arriving too early and more like the page not taking navigating input for a while. The cause is still unknown.
 
 #### How the Playwright suite treats it: tolerated, and reported
 

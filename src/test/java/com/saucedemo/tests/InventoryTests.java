@@ -1,8 +1,11 @@
 package com.saucedemo.tests;
 
+import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static com.saucedemo.domain.Product.BACKPACK;
 import static com.saucedemo.domain.User.STANDARD;
+import static com.saucedemo.support.PageAssertions.assertOpen;
 
+import com.microsoft.playwright.Page;
 import com.saucedemo.SauceDemo;
 import com.saucedemo.pages.InventoryPage;
 import com.saucedemo.support.SauceDemoTest;
@@ -14,10 +17,12 @@ import org.junit.jupiter.api.Test;
 @DisplayName("Inventory Page Tests")
 class InventoryTests {
 
+  private Page page;
   private InventoryPage inventory;
 
   @BeforeEach
-  void logIn(SauceDemo app) {
+  void logIn(SauceDemo app, Page page) {
+    this.page = page;
     inventory = app.shopper(STANDARD).inventory();
   }
 
@@ -26,23 +31,23 @@ class InventoryTests {
   void addItemToCart_incrementsCartBadge() {
     inventory.product(BACKPACK).addToCart();
 
-    inventory.header().cartBadge().assertShows(1);
+    assertThat(inventory.header().cartBadge().count()).hasText("1");
   }
 
   @Test
   @DisplayName("Removing item from cart hides cart badge")
   void removeItemFromCart_hidesCartBadge() {
     inventory.product(BACKPACK).addToCart();
-    inventory.header().cartBadge().assertShows(1);
+    assertThat(inventory.header().cartBadge().count()).hasText("1");
 
     inventory.product(BACKPACK).remove();
 
-    inventory.header().cartBadge().assertHidden();
+    assertThat(inventory.header().cartBadge().count()).isHidden();
   }
 
   @Test
   @DisplayName("Clicking shopping cart navigates to cart page")
   void clickShoppingCart_navigatesToCartPage() {
-    inventory.header().openCart().assertIsOpen();
+    assertOpen(page, inventory.header().openCart());
   }
 }

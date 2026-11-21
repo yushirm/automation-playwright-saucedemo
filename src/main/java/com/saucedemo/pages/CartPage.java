@@ -15,7 +15,7 @@ public final class CartPage extends AppPage {
   }
 
   @Override
-  protected String expectedTitle() {
+  public String expectedTitle() {
     return "Your Cart";
   }
 

@@ -3,7 +3,9 @@ package com.saucedemo.tests;
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static com.saucedemo.domain.LoginError.USERNAME_AND_PASSWORD_DO_NOT_MATCH;
 import static com.saucedemo.domain.User.STANDARD;
+import static com.saucedemo.support.PageAssertions.assertOpen;
 
+import com.microsoft.playwright.Page;
 import com.saucedemo.SauceDemo;
 import com.saucedemo.domain.User;
 import com.saucedemo.pages.LoginPage;
@@ -18,17 +20,19 @@ class LoginTests {
 
   private static final String UNKNOWN_USERNAME = "invalid_user";
 
+  private Page page;
   private LoginPage login;
 
   @BeforeEach
-  void openLoginPage(SauceDemo app) {
+  void openLoginPage(SauceDemo app, Page page) {
+    this.page = page;
     login = app.loginPage().open();
   }
 
   @Test
   @DisplayName("Login with valid credentials redirects to inventory page")
   void loginWithValidCredentials_redirectsToInventory() {
-    login.loginAs(STANDARD).assertIsOpen();
+    assertOpen(page, login.loginAs(STANDARD));
   }
 
   @Test
@@ -37,6 +41,6 @@ class LoginTests {
     login.attemptLogin(UNKNOWN_USERNAME, User.PASSWORD);
 
     assertThat(login.error()).containsText(USERNAME_AND_PASSWORD_DO_NOT_MATCH.message());
-    login.assertIsOpen();
+    assertOpen(page, login);
   }
 }

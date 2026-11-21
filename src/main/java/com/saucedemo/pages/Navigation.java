@@ -4,6 +4,7 @@ import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.TimeoutError;
 import io.qameta.allure.Allure;
+import io.qameta.allure.model.Label;
 import java.lang.System.Logger.Level;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -31,6 +32,8 @@ public final class Navigation {
    */
   private static final double DROPPED_CLICK_WAIT_MS = 2_000;
 
+  private static final String DROPPED_CLICK_TAG = "dropped-click";
+
   private static final List<DroppedClick> DROPPED_CLICKS = new CopyOnWriteArrayList<>();
 
   /** A click that was retried because the page did not change. */
@@ -56,7 +59,7 @@ public final class Navigation {
     control.click();
     if (!urlLeaves(page, startUrl)) {
       DROPPED_CLICKS.add(new DroppedClick(startUrl, control.toString()));
-      Allure.label("tag", "dropped-click");
+      tagTestOnce();
       Allure.step("Click dropped on " + startUrl + ", retried once");
       LOG.log(
           Level.WARNING,
@@ -65,6 +68,20 @@ public final class Navigation {
           startUrl);
       control.click();
     }
+  }
+
+  /** Tags the running test {@code dropped-click}, once however many of its clicks were dropped. */
+  private static void tagTestOnce() {
+    Allure.getLifecycle()
+        .updateTest(test -> {
+          boolean tagged =
+              test.getLabels().stream()
+                  .anyMatch(label ->
+                      "tag".equals(label.getName()) && DROPPED_CLICK_TAG.equals(label.getValue()));
+          if (!tagged) {
+            test.getLabels().add(new Label().setName("tag").setValue(DROPPED_CLICK_TAG));
+          }
+        });
   }
 
   private static boolean urlLeaves(Page page, String startUrl) {

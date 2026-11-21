@@ -16,7 +16,7 @@ public final class CheckoutInformationPage extends AppPage {
   }
 
   @Override
-  protected String expectedTitle() {
+  public String expectedTitle() {
     return "Checkout: Your Information";
   }
 
